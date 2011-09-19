@@ -94,10 +94,11 @@ timer_sleep (int64_t ticks)
   ASSERT (intr_get_level () == INTR_ON);
   struct semaphore sema;
   sema_init(&sema,0);
-  //printf("sema_int\n");
+  // printf("sema_init\n");
   sema_up(&sema);
   //printf("sema_up\n");
   while (timer_elapsed (start) < ticks);
+  //printf("while ended\n");
   sema_down(&sema);
   //printf("sema_down\n");
 }
