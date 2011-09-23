@@ -96,18 +96,6 @@ compare_threads_by_wakeup_time(struct list_elem *elem1,struct list_elem *elem2,v
   struct thread *t2 = list_entry (elem2, struct thread, timer_list_elem);
 
   return t1->wakeup_time < t2->wakeup_time;
-  /*if(t1->wakeup_time > t2->wakeup_time)
-  {
-    return 1;
-  }
-  else if(t1->wakeup_time < t2->wakeup_time)
-  {
-    return -1;
-  }
-  else
-  {
-    return 0;
-  }*/
 }
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
@@ -124,22 +112,10 @@ timer_sleep (int64_t ticks)
   ASSERT (intr_get_level () == INTR_ON);
 
   intr_disable();
-  //list_remove(&(t->elem));
   list_insert_ordered(&wait_list,&(t->timer_list_elem),compare_threads_by_wakeup_time,NULL);
   intr_enable();
 
-  struct semaphore *sema = &t->sema;
-  sema_init(sema,0);
-  sema_up(sema);
-  //nothing after this happens while the thread is blocked, need to move to timer_interrupt
-  /*sema_up(&sema);
-  
-  while (timer_elapsed (start) < ticks);
-  sema_down(&sema);
-
-  intr_disable();
-  list_remove(&(t->timer_list_elem));
-  intr_enable();*/
+  sema_down(&(t->sema));
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -220,28 +196,20 @@ timer_interrupt (struct intr_frame *args UNUSED)
   thread_tick ();
   
   struct thread *t;
-  struct semaphore *sema;
+  struct semaphore sema;
   struct list_elem sleepingThread;
   while(!(list_empty(&wait_list)))
   {
     sleepingThread = *list_begin(&wait_list);
     
     t = list_entry(list_begin(&wait_list),struct thread, timer_list_elem);
-    if(t->wakeup_time >= ticks)
+    if(t->wakeup_time > ticks)
     {
-      sema = t->sema;
-      sema_down(sema);
+      break;
+    }
+    sema_up(&(t->sema));
       
-      intr_disable();
-      list_remove(&(t->timer_list_elem));
-      //possibly insert it by priority later?
-      //list_insert(&ready_list,&(t->elem));
-      intr_enable();
-    }
-    else
-    {
-      break; 
-    }
+    list_pop_front(&wait_list);
   }
 }
 
