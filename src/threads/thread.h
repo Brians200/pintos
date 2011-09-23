@@ -96,7 +96,7 @@ struct thread
     
     struct semaphore sema;
     struct list_elem timer_list_elem;
-    int wakeup_time;
+    int64_t wakeup_time;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
