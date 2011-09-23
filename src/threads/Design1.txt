@@ -7,7 +7,7 @@ CIS 520 - Programming Project #1
 
 Brian Sweeney <bsweeney@k-state.edu>
 Brandon Davis <davisb@k-state.edu>
-...
+Ashish Panday <panday@k-state.edu>
 
 ---- PRELIMINARIES ----
 
