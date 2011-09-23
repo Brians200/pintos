@@ -28,14 +28,59 @@ Ashish Panday <panday@k-state.edu>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    char name[16];                      /* Name (for debugging purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    struct list_elem allelem;           /* List element for all threads list. */
+
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+    
+    struct semaphore sema;
+    struct list_elem timer_list_elem;
+    int wakeup_time;
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+  };
+
+Added timer_list_elem so it could be added to a wait_list
+Added wakeup_time so we know when to wake it up
+Added sema so the same semaphore can be used in timer_sleep() and timer_interrupt()
+
+static struct list wait_list;
+Holds all the sleeping threads
+
+
+
 
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to your timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
+We get the current thread. 
+Set the threads wakeup_time = timer_ticks+ (input ticks) 
+Insert the thread into wait_list
+semadown using thread's semaphore
+
+We turn off the interrupts around the the line where we insert the thread.
+
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
+
+When the thread was inserted into wait_list, we insert it in a sorted list. So only have to check the first few elements of the list and not every single element.
+Then we break when we find a thread that doesn't need woken up yet.
 
 
 ---- SYNCHRONIZATION ----
@@ -43,9 +88,13 @@ Ashish Panday <panday@k-state.edu>
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
+We disable interrupts when we insert the thread into wait_list.
+
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
+
+They are avoided because interrupts are turned off during critical sections.
 
 
 ---- RATIONALE ----
@@ -53,6 +102,7 @@ Ashish Panday <panday@k-state.edu>
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> other designs that you considered?
 
+We received insight from the teacher about this approach. It avoids busy waiting so other threads can get more work done.
 
 
              PRIORITY SCHEDULING
