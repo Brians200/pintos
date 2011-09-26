@@ -209,6 +209,8 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  //TODO: Recompute priority queue, by adding this thread. 
+
   //Brandon. added this to see if the thread being created has higher priority than the one being created.
   thread_yield_to_higher_priority();
   return tid;
