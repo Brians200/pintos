@@ -137,6 +137,7 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+    //TODO:need to get highest priority thread, do round-robin here
 }
 
 /* Prints thread statistics. */
@@ -209,7 +210,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  //Brandon. added this to see if the thread being created has higher priority than the one being created.
+  //Checks to see if thread being created is not the highest
   thread_yield_to_higher_priority();
   return tid;
 }
@@ -247,7 +248,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_push_back (&ready_list, &t->elem);//TODO:need to possibly switch to this thread if it has higher priority than the current thread/wake up highest priority thread that is waiting on the lock first
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -537,7 +538,7 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+    return list_entry (list_pop_front (&ready_list), struct thread, elem);//TODO:need to modify here to get highest priority thread
 }
 
 /* Completes a thread switch by activating the new thread's page
