@@ -229,7 +229,7 @@ thread_block (void)
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
-  thread_current ()->status = THREAD_BLOCKED;
+  thread_current()->status = THREAD_BLOCKED;
   schedule ();
 }
 
@@ -250,7 +250,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);//TODO:need to possibly switch to this thread if it has higher priority than the current thread/wake up highest priority thread that is waiting on the lock first
+  list_insert_ordered(&ready_list,&(t->elem),thread_sort_priority,NULL);
+  //list_push_back (&ready_list, &t->elem);//TODO:need to possibly switch to this thread if it has higher priority than the current thread/wake up highest priority thread that is waiting on the lock first
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -321,7 +322,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered(&ready_list,&(cur->elem),thread_sort_priority,NULL);
+    //list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -342,6 +344,16 @@ thread_foreach (thread_action_func *func, void *aux)
       struct thread *t = list_entry (e, struct thread, allelem);
       func (t, aux);
     }
+}
+
+/*This function will be passed when we add a thread to the ready queue so we can sort it by priority.*/
+bool
+thread_sort_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED)
+{
+  const struct thread *a = list_entry(a_,struct thread,elem);
+  const struct thread *b = list_entry(b_,struct thread,elem);
+  
+  return a->priority > b->priority;
 }
 
 /*Returns true if thread a has a lower priority than thread b.*/
