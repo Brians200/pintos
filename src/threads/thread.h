@@ -94,9 +94,12 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
     
+    //we have added these
     struct semaphore sema;
     struct list_elem timer_list_elem;
     int64_t wakeup_time;
+    int original_priority;
+    struct list threads_donated_to;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -135,7 +138,7 @@ void thread_yield (void);
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
-//added these functions
+//added these functions TODO: add to design document
 bool thread_sort_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED);
 bool thread_lower_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED);
 void thread_yield_to_higher_priority(void);

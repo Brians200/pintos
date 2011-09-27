@@ -181,6 +181,32 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
+void
+donate_priority(struct thread *donor,struct thread *donee,struct lock *lock)
+{
+  if(donee!=NULL)
+  {
+    struct list *donee_list = &donee->threads_donated_to;
+    struct list *donated_list = &lock->semaphore.waiters;
+    if(list_empty(&(donated_list))
+    {
+      donee->original_priority = donee->priority;
+      donee->priority = donor->priority;
+      if(!list_empty(donee_list))
+      {
+	struct list_elem *e;
+	for(e = list_begin(donee_list); e!=list_end(donee_list);e=list_next(e))
+	  donate_priority(donee,list_entry(e));
+      }
+      list_insert_ordered(&donated_list,&t->elem,thread_sort_priority,NULL);
+    }
+    else
+    {
+      
+    }
+  }
+}
+
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -196,6 +222,7 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  donate_priority(thread_current(),lock->holder,lock);
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
