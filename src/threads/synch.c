@@ -184,34 +184,9 @@ lock_init (struct lock *lock)
 void
 take_back_priority(struct thread *donee,struct lock *lock)
 {
-  struct list *donor_list = &((lock->semaphore).waiters);
-  if(!list_empty(donor_list))
-  {
-    struct thread *donor = list_entry(list_front(donor_list),struct thread,elem);
-    struct list *threads_donated_to = &donor->threads_donated_to;
-    while(!list_empty(threads_donated_to))
-      list_pop_front(threads_donated_to);
-  }
-  list_sort(donor_list,thread_sort_priority,NULL);
-  //list_remove(&donor->elem);
-}
-
-/*Just passing on the donation.*/
-void
-donate_priority(struct thread *donor,struct thread *donee)
-{
-  struct list *donee_list = &(donee->threads_donated_to);
-  if(donor->priority > donee->priority)
-  {
-    donee->priority = donor->priority;
-    struct list_elem *e;
-    for(e=list_begin(donee_list); e!=list_end(donee_list); e=list_next(e))
-    {
-      struct thread *t = list_entry(e,struct thread,elem);
-      if(t->tid != donee->tid)
-	donate_priority(donee,t);
-    }
-  }
+  donee->priority = donee->original_priority;
+  struct list *threads_donated_to = &donee->threads_donated_to;
+  list_init(threads_donated_to);
 }
 
 /*donor wants the lock so it donates it's priority to donee. All threads that donee has donated to will also get the new priority.
@@ -221,22 +196,17 @@ donate_priority_lock(struct thread *donor,struct thread *donee,struct lock *lock
 {
   if(donee!=NULL)
   {
-    struct list *donated_to_lock_list = &((lock->semaphore).waiters);
-    
-    int max_priority = 0;  // Temporary value
-    max_priority = (list_entry(list_max(donated_to_lock_list,thread_sort_priority,NULL),struct thread,elem))->priority;
-    if(donor->priority > max_priority)
+    donee->priority = donor->priority;
+    struct list *list_of_threads_donated_to = &(donee->threads_donated_to);
+    struct thread *a;
+    struct thread *b = donee;
+    while(true)
     {
-      struct list *list_of_threads_donated_to = &(donee->threads_donated_to);
-      donee->priority = donor->priority;
-      struct list_elem *e;
-      for(e = list_begin(list_of_threads_donated_to); e!=list_end(list_of_threads_donated_to);e=list_next(e))
-      {
-	struct thread *t = list_entry(e,struct thread,elem);
-	if(t->tid != donee->tid)
-	  donate_priority(donee,t);
-      }
-      list_push_front(&donor->threads_donated_to,&donee->elem);
+      if(list_empty(list_of_threads_donated_to)) break;
+      a = b;
+      b = list_front(list_of_threads_donated_to);
+      b->priority = a->priority;
+      list_of_threads_donated_to = &(b->threads_donated_to);
     }
   }
 }

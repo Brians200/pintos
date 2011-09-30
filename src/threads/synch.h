@@ -45,7 +45,6 @@ void cond_broadcast (struct condition *, struct lock *);
 //Our methods
 void take_back_priority(struct thread *donee,struct lock *lock);
 void donate_priority_lock(struct thread *donor, struct thread *donee, struct lock *lock);
-void donate_priority(struct thread *donor, struct thread *donee); 
 //
 
 /* Optimization barrier.
