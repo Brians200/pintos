@@ -114,8 +114,10 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) 
-    thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+  {
+    list_sort(&sema->waiters,thread_sort_priority,NULL);
+    thread_unblock (list_entry (list_pop_front (&sema->waiters),struct thread, elem));
+  }
   sema->value++;
   intr_set_level (old_level);
 }
@@ -187,6 +189,8 @@ take_back_priority(struct thread *donee,struct lock *lock)
   donee->priority = donee->original_priority;
   struct list *threads_donated_to = &donee->threads_donated_to;
   list_init(threads_donated_to);
+  //struct list *donor_threads = &lock->semaphore.waiters;
+  //list_sort(donor_threads,thread_lower_priority,NULL);
 }
 
 /*donor wants the lock so it donates it's priority to donee. All threads that donee has donated to will also get the new priority.

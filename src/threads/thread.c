@@ -210,8 +210,6 @@ thread_create (const char *name, int priority,
   thread_unblock (t);
 
   //Checks to see if thread being created is not the highest
-  //TODO: Recompute priority queue, by adding this thread. 
-
   thread_yield_to_higher_priority();
   return tid;
 }
