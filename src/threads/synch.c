@@ -223,7 +223,7 @@ donate_priority_lock(struct thread *donor,struct thread *donee,struct lock *lock
   {
     struct list *donated_to_lock_list = &((lock->semaphore).waiters);
     
-    int max_priority = 0;
+    int max_priority = 0;  // Temporary value
     max_priority = (list_entry(list_max(donated_to_lock_list,thread_sort_priority,NULL),struct thread,elem))->priority;
     if(donor->priority > max_priority)
     {
