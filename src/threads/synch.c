@@ -182,27 +182,61 @@ lock_init (struct lock *lock)
 }
 
 void
-donate_priority(struct thread *donor,struct thread *donee,struct lock *lock)
+take_back_priority(struct thread *donee,struct lock *lock)
+{
+  struct list *donor_list = &((lock->semaphore).waiters);
+  if(!list_empty(donor_list))
+  {
+    struct thread *donor = list_entry(list_front(donor_list),struct thread,elem);
+    struct list *threads_donated_to = &donor->threads_donated_to;
+    while(!list_empty(threads_donated_to))
+      list_pop_front(threads_donated_to);
+  }
+  list_sort(donor_list,thread_sort_priority,NULL);
+  //list_remove(&donor->elem);
+}
+
+/*Just passing on the donation.*/
+void
+donate_priority(struct thread *donor,struct thread *donee)
+{
+  struct list *donee_list = &(donee->threads_donated_to);
+  if(donor->priority > donee->priority)
+  {
+    donee->priority = donor->priority;
+    struct list_elem *e;
+    for(e=list_begin(donee_list); e!=list_end(donee_list); e=list_next(e))
+    {
+      struct thread *t = list_entry(e,struct thread,elem);
+      if(t->tid != donee->tid)
+	donate_priority(donee,t);
+    }
+  }
+}
+
+/*donor wants the lock so it donates it's priority to donee. All threads that donee has donated to will also get the new priority.
+The donor is added to the lock's semaphore's waters list. The donee is added to the donor's threads_donated_to.*/
+void
+donate_priority_lock(struct thread *donor,struct thread *donee,struct lock *lock)
 {
   if(donee!=NULL)
   {
-    struct list *donee_list = &donee->threads_donated_to;
-    struct list *donated_list = &lock->semaphore.waiters;
-    if(list_empty(&(donated_list))
+    struct list *donated_to_lock_list = &((lock->semaphore).waiters);
+    
+    int max_priority = 0;
+    max_priority = (list_entry(list_max(donated_to_lock_list,thread_sort_priority,NULL),struct thread,elem))->priority;
+    if(donor->priority > max_priority)
     {
-      donee->original_priority = donee->priority;
+      struct list *list_of_threads_donated_to = &(donee->threads_donated_to);
       donee->priority = donor->priority;
-      if(!list_empty(donee_list))
+      struct list_elem *e;
+      for(e = list_begin(list_of_threads_donated_to); e!=list_end(list_of_threads_donated_to);e=list_next(e))
       {
-	struct list_elem *e;
-	for(e = list_begin(donee_list); e!=list_end(donee_list);e=list_next(e))
-	  donate_priority(donee,list_entry(e));
+	struct thread *t = list_entry(e,struct thread,elem);
+	if(t->tid != donee->tid)
+	  donate_priority(donee,t);
       }
-      list_insert_ordered(&donated_list,&t->elem,thread_sort_priority,NULL);
-    }
-    else
-    {
-      
+      list_push_front(&donor->threads_donated_to,&donee->elem);
     }
   }
 }
@@ -222,7 +256,7 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  donate_priority(thread_current(),lock->holder,lock);
+  donate_priority_lock(thread_current(),lock->holder,lock);
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
@@ -258,6 +292,7 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  take_back_priority(lock->holder,lock);
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
