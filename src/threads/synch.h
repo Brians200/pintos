@@ -22,6 +22,9 @@ struct lock
   {
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
+
+    struct list_elem holder_elem;
+    int lock_priority;
   };
 
 void lock_init (struct lock *);
@@ -43,7 +46,7 @@ void cond_broadcast (struct condition *, struct lock *);
 
 
 //Our methods
-void take_back_priority(struct thread *donee,struct lock *lock);
+void take_back_priority(struct thread *donor,struct thread *donee,struct lock *lock);
 void donate_priority_lock(struct thread *donor, struct thread *donee, struct lock *lock);
 //
 

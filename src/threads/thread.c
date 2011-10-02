@@ -341,6 +341,13 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+void
+reorder_ready_list(struct thread *donor2)
+{
+  list_remove(&donor2->elem);
+  list_insert_ordered(&ready_list,&donor2->elem,thread_sort_priority,NULL);
+}
+
 /*This function will be passed when we add a thread to the ready queue so we can sort it by priority.*/
 bool
 thread_sort_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED)
@@ -519,6 +526,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->original_priority = priority;
+  list_init(&t->locks);
+  t->blocked = NULL;
+  t->donated = false;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
   sema_init(&(t->sema),0);

@@ -100,6 +100,10 @@ struct thread
     int64_t wakeup_time;
     int original_priority;
     struct list threads_donated_to;
+    //priority donation
+    struct list locks;
+    struct lock *blocked;
+    bool donated;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -142,6 +146,7 @@ void thread_foreach (thread_action_func *, void *);
 bool thread_sort_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED);
 bool thread_lower_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED);
 void thread_yield_to_higher_priority(void);
+void reorder_ready_list(struct thread *donor2);
 //
 int thread_get_priority (void);
 void thread_set_priority (int);
