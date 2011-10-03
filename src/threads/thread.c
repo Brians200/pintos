@@ -344,8 +344,9 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 reorder_ready_list(struct thread *donor2)
 {
-  list_remove(&donor2->elem);
-  list_insert_ordered(&ready_list,&donor2->elem,thread_sort_priority,NULL);
+  list_sort(&ready_list,thread_sort_priority,NULL);
+  //list_remove(&donor2->elem);
+  //list_insert_ordered(&ready_list,&donor2->elem,thread_sort_priority,NULL);
 }
 
 /*This function will be passed when we add a thread to the ready queue so we can sort it by priority.*/
@@ -397,9 +398,25 @@ thread_yield_to_higher_priority(void)
 void
 thread_set_priority (int new_priority) 
 {
+  thread_set_original_priority(new_priority,true);
+}
+
+void
+thread_set_original_priority(int new_priority,bool orig)
+{
   struct thread *t = thread_current();
-  t->priority = new_priority;
-  
+  if(orig)
+  {
+    t->original_priority = new_priority;
+    if(t->priority < new_priority || list_empty(&t->locks))
+    {
+      t->priority = new_priority;
+    }
+  }
+  else
+  {
+    t->priority = new_priority;
+  }
   thread_yield_to_higher_priority();
 }
 

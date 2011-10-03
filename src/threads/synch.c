@@ -119,6 +119,7 @@ sema_up (struct semaphore *sema)
     thread_unblock (list_entry (list_pop_front (&sema->waiters),struct thread, elem));
   }
   sema->value++;
+  thread_yield_to_higher_priority();
   intr_set_level (old_level);
 }
 
@@ -194,7 +195,12 @@ take_back_priority(struct thread *donor,struct thread *donee,struct lock *lock)
   if(list_empty(&donor2->locks))
   {
     donor2->donated = false;
-    thread_set_priority(donor2->original_priority);
+    donor2->priority = donor2->original_priority;
+    //thread_set_original_priority(donor2->original_priority,false);
+    if(donor2->status == THREAD_READY)
+    {
+      reorder_ready_list(donor2);
+    }
   }
   else
   {
@@ -205,17 +211,13 @@ take_back_priority(struct thread *donor,struct thread *donee,struct lock *lock)
       {
 	reorder_ready_list(donor2);
       }
-      thread_set_priority(lock2->lock_priority);
+      donor2->priority = lock2->lock_priority;
+      //thread_set_original_priority(lock2->lock_priority,false);
     }
     else
-      thread_set_priority(donor2->original_priority);
+      donor2->priority = donor2->original_priority;
+      //thread_set_original_priority(donor2->original_priority,false);
   }
-
-  //donee->priority = donee->original_priority;
-  //struct list *threads_donated_to = &donee->threads_donated_to;
-  //list_init(threads_donated_to);
-  //struct list *donor_threads = &lock->semaphore.waiters;
-  //list_sort(donor_threads,thread_lower_priority,NULL);
 }
 
 /*donor wants the lock so it donates it's priority to donee. All threads that donee has donated to will also get the new priority.
@@ -242,24 +244,9 @@ donate_priority_lock(struct thread *donor,struct thread *donee,struct lock *lock
       }
       else
         break;
+      reorder_ready_list(donee2);
     }
   }
-
-  /*if(donee!=NULL)
-  {
-    donee->priority = donor->priority;
-    struct list *list_of_threads_donated_to = &(donee->threads_donated_to);
-    struct thread *a;
-    struct thread *b = donee;
-    while(true)
-    {
-      if(list_empty(list_of_threads_donated_to)) break;
-      a = b;
-      b = list_front(list_of_threads_donated_to);
-      b->priority = a->priority;
-      list_of_threads_donated_to = &(b->threads_donated_to);
-    }
-  }*/
 }
 
 bool
@@ -336,9 +323,9 @@ lock_release (struct lock *lock)
 
   enum intr_level old_level = intr_disable();
 
+  take_back_priority(thread_current(),lock->holder,lock);
   lock->holder = NULL;
   sema_up (&lock->semaphore);
-  take_back_priority(thread_current(),lock->holder,lock);
 
   intr_set_level(old_level);
 }

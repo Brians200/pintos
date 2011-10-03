@@ -143,6 +143,7 @@ typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
 //added these functions TODO: add to design document
+void thread_set_original_priority(int new_priority,bool orig);
 bool thread_sort_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED);
 bool thread_lower_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED);
 void thread_yield_to_higher_priority(void);
