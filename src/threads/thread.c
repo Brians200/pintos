@@ -208,9 +208,11 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
+  
   //Checks to see if thread being created is not the highest
-  thread_yield_to_higher_priority();
+  if(priority > thread_current()->priority)
+    thread_yield();
+  //thread_yield_to_higher_priority();
   return tid;
 }
 
@@ -247,7 +249,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered(&ready_list,&(t->elem),thread_sort_priority,NULL);
+  list_insert_ordered(&ready_list,&(t->elem),&thread_sort_priority,NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -318,7 +320,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_insert_ordered(&ready_list,&(cur->elem),thread_sort_priority,NULL);
+    list_insert_ordered(&ready_list,&(cur->elem),&thread_sort_priority,NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -342,11 +344,11 @@ thread_foreach (thread_action_func *func, void *aux)
 }
 
 void
-reorder_ready_list(struct thread *donor2)
+reorder_ready_list(void)
 {
-  list_sort(&ready_list,thread_sort_priority,NULL);
+  list_sort(&ready_list,&thread_sort_priority,NULL);
   //list_remove(&donor2->elem);
-  //list_insert_ordered(&ready_list,&donor2->elem,thread_sort_priority,NULL);
+  //list_insert_ordered(&ready_list,&donor2->elem,&thread_sort_priority,NULL);
 }
 
 /*This function will be passed when we add a thread to the ready queue so we can sort it by priority.*/
@@ -390,8 +392,9 @@ thread_yield_to_higher_priority(void)
 	thread_yield();
       }
     }
-    intr_set_level(old_level);
+
   }
+  intr_set_level(old_level);
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */

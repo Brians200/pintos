@@ -99,7 +99,7 @@ struct thread
     struct list_elem timer_list_elem;
     int64_t wakeup_time;
     int original_priority;
-    struct list threads_donated_to;
+    //struct list threads_donated_to;
     //priority donation
     struct list locks;
     struct lock *blocked;
@@ -147,7 +147,7 @@ void thread_set_original_priority(int new_priority,bool orig);
 bool thread_sort_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED);
 bool thread_lower_priority(const struct list_elem *a_,const struct list_elem *b_,void *aux UNUSED);
 void thread_yield_to_higher_priority(void);
-void reorder_ready_list(struct thread *donor2);
+void reorder_ready_list(void);
 //
 int thread_get_priority (void);
 void thread_set_priority (int);

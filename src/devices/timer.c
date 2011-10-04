@@ -197,11 +197,8 @@ timer_interrupt (struct intr_frame *args UNUSED)
   
   struct thread *t;
   struct semaphore sema;
-  struct list_elem sleepingThread;
   while(!(list_empty(&wait_list)))
   {
-    sleepingThread = *list_begin(&wait_list);
-    
     t = list_entry(list_begin(&wait_list),struct thread, timer_list_elem);
     if(t->wakeup_time > ticks)
     {
