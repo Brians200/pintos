@@ -199,18 +199,21 @@ take_back_priority(struct thread *donor,struct lock *lock)
   if(list_empty(&donor2->locks))
   {
     donor2->donated = false;
-    donor2->priority = donor2->original_priority;
+    thread_set_priority(donor2->original_priority);
+    //donor2->priority = donor2->original_priority;
   }
   else
   {
     another_lock = list_entry(list_back(&donor2->locks),struct lock,holder_elem);
     if(another_lock->lock_priority != PRI_MIN - 1)
     {
-      donor2->priority = another_lock->lock_priority;
+      thread_set_original_priority(another_lock->lock_priority,false);
+      //donor2->priority = another_lock->lock_priority;
     }
     else
     {
-      donor2->priority = donor2->original_priority;
+      thread_set_priority(donor2->original_priority);
+      //donor2->priority = donor2->original_priority;
     }
   }
 }
@@ -318,13 +321,13 @@ lock_release (struct lock *lock)
 
   enum intr_level old_level = intr_disable();
 
-  take_back_priority(lock->holder,lock);
   lock->holder = NULL;
-
   sema_up (&lock->semaphore);
+  take_back_priority(thread_current(),lock);
+
   //reorder_ready_list();
-  thread_yield_to_higher_priority();
   intr_set_level(old_level);
+  thread_yield_to_higher_priority();
 }
 
 /* Returns true if the current thread holds LOCK, false

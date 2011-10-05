@@ -210,8 +210,10 @@ thread_create (const char *name, int priority,
   thread_unblock (t);
   
   //Checks to see if thread being created is not the highest
-  if(priority > thread_current()->priority)
+  if(priority > thread_get_priority())
+  {
     thread_yield();
+  }
   //thread_yield_to_higher_priority();
   return tid;
 }
