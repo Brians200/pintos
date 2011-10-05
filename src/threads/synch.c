@@ -116,11 +116,8 @@ sema_up (struct semaphore *sema)
   sema->value++;
   if (!list_empty (&sema->waiters)) 
   {
-    struct thread *max = list_entry(list_max(&sema->waiters,thread_lower_priority,NULL),struct thread,elem);
-    list_remove(&max->elem);
-    thread_unblock(max);
-    //list_sort(&sema->waiters,thread_sort_priority,NULL);
-    //thread_unblock (list_entry (list_pop_front (&sema->waiters),struct thread, elem));
+    list_sort(&sema->waiters,thread_sort_priority,NULL);
+    thread_unblock (list_entry (list_pop_front (&sema->waiters),struct thread, elem));
     if(!intr_context() && old_level == INTR_ON)
       thread_yield_to_higher_priority();
   }
@@ -200,7 +197,6 @@ take_back_priority(struct thread *donor,struct lock *lock)
   {
     donor2->donated = false;
     thread_set_priority(donor2->original_priority);
-    //donor2->priority = donor2->original_priority;
   }
   else
   {
@@ -208,12 +204,10 @@ take_back_priority(struct thread *donor,struct lock *lock)
     if(another_lock->lock_priority != PRI_MIN - 1)
     {
       thread_set_original_priority(another_lock->lock_priority,false);
-      //donor2->priority = another_lock->lock_priority;
     }
     else
     {
       thread_set_priority(donor2->original_priority);
-      //donor2->priority = donor2->original_priority;
     }
   }
 }
@@ -325,9 +319,7 @@ lock_release (struct lock *lock)
   sema_up (&lock->semaphore);
   take_back_priority(thread_current(),lock);
 
-  //reorder_ready_list();
   intr_set_level(old_level);
-  thread_yield_to_higher_priority();
 }
 
 /* Returns true if the current thread holds LOCK, false

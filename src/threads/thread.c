@@ -214,7 +214,6 @@ thread_create (const char *name, int priority,
   {
     thread_yield();
   }
-  //thread_yield_to_higher_priority();
   return tid;
 }
 
@@ -349,8 +348,6 @@ void
 reorder_ready_list(void)
 {
   list_sort(&ready_list,&thread_sort_priority,NULL);
-  //list_remove(&donor2->elem);
-  //list_insert_ordered(&ready_list,&donor2->elem,&thread_sort_priority,NULL);
 }
 
 /*This function will be passed when we add a thread to the ready queue so we can sort it by priority.*/
