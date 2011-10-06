@@ -113,19 +113,84 @@ We received insight from the teacher about this approach. It avoids busy waiting
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    char name[16];                      /* Name (for debugging purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    struct list_elem allelem;           /* List element for all threads list. */
+
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+    
+    //we have added these
+    struct semaphore sema;
+    struct list_elem timer_list_elem;
+    int64_t wakeup_time;
+    int original_priority;
+    //priority donation
+    struct list locks;
+    struct lock *blocked;
+    bool donated;
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+  };
+
+Purpose: Keep track of locks it holds, Lock that blocks it, whether it has been donated to, and original priority.
+
+struct lock 
+  {
+    struct thread *holder;      /* Thread holding lock (for debugging). */
+    struct semaphore semaphore; /* Binary semaphore controlling access. */
+
+    struct list_elem holder_elem;
+    int lock_priority;
+  };
+
+Purpose: List_elem so we can put it in a list. Lock_priority so we can track highest donation.
+
+/* One semaphore in a list. */
+struct semaphore_elem 
+  {
+    struct list_elem elem;              /* List element. */
+    struct semaphore semaphore;         /* This semaphore. */
+    
+    //
+    int priority;
+  };
+
+Purpose: Keeps track of priority when its used in cond_wait and sort_cond
+
 >> B2: Explain the data structure used to track priority donation.
 
+Threads have a list of locks and a blocking lock.  Locks have a highest donated priority.
 
 ---- ALGORITHMS ----
 
 >> B3: How do you ensure that the highest priority thread waiting for
 >> a lock, semaphore, or condition variable wakes up first?
 
+We keep the waiters sorted by highest priority.
+
 >> B4: Describe the sequence of events when a call to lock_acquire()
 >> causes a priority donation.  How is nested donation handled?
 
+Lock_acquire calls donate_priority_lock.  The second argument is the lock holder. In our function, if it is not NULL, then we donate the priority.
+We handle nested donation by looping through the threads that are blocking a thread and we set their priority to the donating priorities.
+
 >> B5: Describe the sequence of events when lock_release() is called
 >> on a lock that a higher-priority thread is waiting for.
+
+Lock_release sets the lock holder to null.  Sema_up is called with the lock's semaphore.  It sorts the waiters and unlocks the highest priority thread. Then take_back_priority is called, resetting the previous lock holder's priority.
 
 ---- SYNCHRONIZATION ----
 
@@ -133,11 +198,17 @@ We received insight from the teacher about this approach. It avoids busy waiting
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
 
+When a priority gets donated and we are calling set_priority(), but there is a context switch and the priority isn't saved into the thread. So now the thread doesn't have the updated priority and priority donation will not work.
+We disable interrupts before setting the priority and renabling them afterwards.
+Yes
+
 ---- RATIONALE ----
 
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
+We started out by keeping track of what threads a certain thread donates to, but then we realized that that only worked if a thread had one lock.  
+So we instead decided to keep a list of locks held by a thread.   
 
               ADVANCED SCHEDULER [EXTRA CREDIT]
               =================================
