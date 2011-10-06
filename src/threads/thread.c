@@ -379,7 +379,7 @@ thread_yield_to_higher_priority(void)
   if(!(list_empty(&ready_list)))
   {
     struct thread *cur = thread_current();
-    struct thread *max = list_entry(list_max(&ready_list,thread_lower_priority,NULL),struct thread, elem);
+    struct thread *max = list_entry(list_max(&ready_list,&thread_lower_priority,NULL),struct thread, elem);
     if(max->priority > cur->priority)
     {
       if(intr_context())
@@ -400,12 +400,17 @@ thread_yield_to_higher_priority(void)
 void
 thread_set_priority (int new_priority) 
 {
+  ASSERT(PRI_MIN <= new_priority && new_priority <= PRI_MAX)
+  enum intr_level old_level = intr_disable();
   thread_set_original_priority(new_priority,true);
+  intr_set_level(old_level);
 }
 
 void
 thread_set_original_priority(int new_priority,bool orig)
 {
+  ASSERT(PRI_MIN <= new_priority && new_priority <= PRI_MAX)
+  
   struct thread *t = thread_current();
   if(orig)
   {
