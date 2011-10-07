@@ -193,7 +193,6 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  thread_tick ();
   
   struct thread *t;
   struct semaphore sema;
@@ -208,6 +207,8 @@ timer_interrupt (struct intr_frame *args UNUSED)
       
     list_pop_front(&wait_list);
   }
+  
+  thread_tick ();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
