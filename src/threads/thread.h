@@ -99,11 +99,13 @@ struct thread
     struct list_elem timer_list_elem;
     int64_t wakeup_time;
     int original_priority;
-    //struct list threads_donated_to;
     //priority donation
     struct list locks;
     struct lock *blocked;
     bool donated;
+    //mlfqs
+    int nice;
+    int recent_cpu;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

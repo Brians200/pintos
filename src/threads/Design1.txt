@@ -219,6 +219,51 @@ So we instead decided to keep a list of locks held by a thread.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    char name[16];                      /* Name (for debugging purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    struct list_elem allelem;           /* List element for all threads list. */
+
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+    
+    //we have added these
+    struct semaphore sema;
+    struct list_elem timer_list_elem;
+    int64_t wakeup_time;
+    int original_priority;
+    //priority donation
+    struct list locks;
+    struct lock *blocked;
+    bool donated;
+    //mlfqs
+    int nice;
+    int recent_cpu;
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+  };
+
+Purpose: added int nice and int recent_cpu to struct thread to keep track of the thread's nice and recent_cpu values, recent_cpu is actually ((recent_cpu)*(1<<14))
+
+static int load_avg = 0;
+
+Purpose: a global variable in thread.c, it is the load_avg for all threads
+
+static const int f = 1<<14;
+
+Purpose: used to implement float-point arithmetic to calculate load_avg and recent_cpu
+
 ---- ALGORITHMS ----
 
 >> C2: Suppose threads A, B, and C have nice values 0, 1, and 2.  Each
@@ -254,3 +299,5 @@ ticks   A   B   C   A   B   C   to run
 >> time to work on this part of the project, how might you choose to
 >> refine or improve your design?
 
+I did not have much time to work on it and can not figure out for sure why it doesn't work. I am probably missing something and don't even know it. I don't completely understand all of the rules for
+mlfqs scheduling.

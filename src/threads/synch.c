@@ -182,7 +182,10 @@ lock_init (struct lock *lock)
   ASSERT (lock != NULL);
 
   lock->holder = NULL;
-  lock->lock_priority = PRI_MIN - 1;
+  if(!thread_mlfqs)
+  {
+    lock->lock_priority = PRI_MIN - 1;
+  }
   sema_init (&lock->semaphore, 1);
 }
 
@@ -269,12 +272,18 @@ lock_acquire (struct lock *lock)
 
   enum intr_level old_level = intr_disable();
 
-  donate_priority_lock(current_thread,lock->holder,lock);
+  if(!thread_mlfqs)
+  {
+    donate_priority_lock(current_thread,lock->holder,lock);
+  }
   sema_down (&lock->semaphore);
   lock->holder = current_thread;
 
-  current_thread->blocked = NULL;
-  list_insert_ordered (&current_thread->locks, &lock->holder_elem, outstanding_priority, NULL);
+  if(!thread_mlfqs)
+  {
+    current_thread->blocked = NULL;
+    list_insert_ordered (&current_thread->locks, &lock->holder_elem, outstanding_priority, NULL);
+  }
 
   intr_set_level(old_level);
 }
@@ -298,7 +307,8 @@ lock_try_acquire (struct lock *lock)
   {
     struct thread *current_thread = thread_current();
     lock->holder = current_thread;
-    list_push_back(&current_thread->locks,&lock->holder_elem);
+    if(!thread_mlfqs)
+      list_push_back(&current_thread->locks,&lock->holder_elem);
   }
   return success;
 }
@@ -318,7 +328,15 @@ lock_release (struct lock *lock)
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
-  take_back_priority(thread_current(),lock);
+  if(!thread_mlfqs)
+    take_back_priority(thread_current(),lock);
+  else
+  {
+    if(intr_context())
+      intr_yield_on_return();
+    else
+      thread_yield();
+  }
 
   intr_set_level(old_level);
 }
