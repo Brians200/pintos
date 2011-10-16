@@ -18,6 +18,15 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+struct start_process_data
+{
+  char* file_name;
+  char* args[32];
+  int argc;
+};
+
+struct start_process_data *data;
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -37,6 +46,20 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+  
+  char* fn;
+  char* save;
+  int count = 0;
+  fn = strtok_r(fn_copy," ",&save);
+  data->file_name = fn;
+  while(((fn = strtok_r(NULL," ",&save))==NULL)&&count<32)
+  {
+    data->args[count] = fn;
+    count++;
+  }
+  data->argc = count;
+  
+  fn_copy = data->file_name;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
@@ -196,6 +219,7 @@ struct Elf32_Phdr
 #define PF_R 4          /* Readable. */
 
 static bool setup_stack (void **esp);
+static void init_stack(void);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -304,6 +328,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
+  
+  init_stack();
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
@@ -437,11 +463,34 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
   return success;
+}
+
+#define push_arg(ARG)                            \
+        ({                                                      \
+          int retval;                                           \
+          asm volatile                                          \
+            ("pushl %[arg]; addl $4, %%esp"      \
+               : "=a" (retval)                                  \
+               : [arg] "g" (ARG)                                \
+               : "memory");                                     \
+          retval;                                               \
+        })
+
+static void
+init_stack(void)
+{
+  int i = data->argc - 1;
+  char *arg;
+  for(;i>=0;i--)
+  {
+    arg = data->args[i];
+    push_arg(arg);
+  }
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel

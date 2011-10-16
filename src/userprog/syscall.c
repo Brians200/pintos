@@ -3,6 +3,15 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/synch.h"
+#include "lib/string.h"
+
+struct file_descriptor
+{
+  int handle;
+  char *file;
+  struct list_elem elem;
+};
 
 static struct lock fs_lock;
 
@@ -15,35 +24,115 @@ syscall_init (void)
   lock_init (&fs_lock);
 }
 
-static void
-syscall_handler (struct intr_frame *f UNUSED) 
-{
-  printf ("system call!\n");
-  thread_exit ();
-}
-
 int sys_open(const char *ufile)
 {
-	char *kfile = copy_in_string (ufile);
-	struct file_descriptor *fd;
-	int handle = -1;
+  char *kfile = copy_in_string (ufile);
+  struct file_descriptor *fd;
+  int handle = -1;
+  fd = malloc (sizeof *fd);
+  if (fd != NULL)
+  {
+    lock_acquire (&fs_lock);
+    fd->file = filesys_open (kfile);
+    if (fd->file != NULL)
+    {
+      struct thread *cur = thread_current ();
+      handle = fd->handle = cur->next_handle++;
+      list_push_front (&cur->fds, &fd->elem);
+    }
+    else
+      free (fd);
+    lock_release (&fs_lock);
+  }
+  palloc_free_page (kfile);
+  return handle;
+}
 
-	fd = malloc (sizeof *fd);
-	if (fd != NULL)
-	{
-		lock_acquire (&fs_lock);
-		fd->file = filesys_open (kfile);
-		if (fd->file != NULL)
-		{
-			struct thread *cur = thread_current ();
-			handle = fd->handle = cur->next_handle++;
-			list_push_front (&cur->fds, &fd->elem);
-		}
-		else
-			free (fd);
-		lock_release (&fs_lock);
-	}
+void sys_halt(void);
+void sys_exit(int status);
+pid_t sys_exec(const char*cmd_line);
+int sys_wait(pid_t pid);
+bool sys_create(const char *file, unsigned initial_size);
+bool sys_remove(const char *file);
+int sys_open(const char *file);
+int sys_filesize(int fd);
+int sys_read(int fd,void *buffer,unsigned size);
+int sys_write(int fd,const void *buffer,unsigned size);
+void sys_seek(int fd,unsigned position);
+unsigned sys_tell(int fd);
+void sys_close(int fd);
 
-	palloc_free_page (kfile);
-	return handle;
+void
+copy_in (void *output, void *esp, unsigned size)
+{
+  int x;
+  char *temp = (char*)output;
+  if(size == sizeof x)
+  {
+    //check here to see if esp is in user's memory
+    temp = *(char*)esp;
+  }
+  else if(size == 2 * sizeof x)
+  {
+    //do something, with two arguments, make sure that we are accessing user's memory
+    temp[0] = *(char*)esp;
+    temp[1] = *((char*)esp+1);
+  }
+  else if(size == 3 * sizeof x)
+  {
+    //do something, with three arguments, make sure that we are accessing user's memory
+    temp[0] = *(char*)esp;
+    temp[1] = *((char*)esp+1);
+    temp[2] = *((char*)esp+2);
+  }
+}
+
+static void
+syscall_handler (struct intr_frame *f)
+{
+  typedef int syscall_function (int, int, int);
+
+  /* A system call. */
+  struct syscall
+  {
+    size_t arg_cnt;
+    /* Number of arguments. */
+    syscall_function *func;
+    /* Implementation. */
+  };
+
+  /* Table of system calls. */
+  static const struct syscall syscall_table[] =
+  {
+    //Project 2
+    {0, (syscall_function *) sys_halt},
+    {1, (syscall_function *) sys_exit},
+    {1, (syscall_function *) sys_exec},
+    {1, (syscall_function *) sys_wait},
+    {2, (syscall_function *) sys_create},
+    {1, (syscall_function *) sys_remove},
+    {1, (syscall_function *) sys_open},
+    {1, (syscall_function *) sys_filesize},
+    {3, (syscall_function *) sys_read},
+    {3, (syscall_function *) sys_write},
+    {2, (syscall_function *) sys_seek},
+    {1, (syscall_function *) sys_tell},
+    {1, (syscall_function *) sys_close}
+  };
+  
+  const struct syscall *sc;
+  unsigned call_nr;
+  int args[3];
+  /* Get the system call. */
+  copy_in (&call_nr, f->esp, sizeof call_nr);
+  if (call_nr >= sizeof syscall_table / sizeof *syscall_table)
+    thread_exit ();
+  sc = syscall_table + call_nr;
+  /* Get the system call arguments. */
+  ASSERT (sc->arg_cnt <= sizeof args / sizeof *args);
+  memset (args, 0, sizeof args);
+  copy_in (args, (uint32_t *) f->esp + 1, sizeof *args * sc->arg_cnt);
+
+  /* Execute the system call,and set the return value. */
+  f->eax = sc->func (args[0], args[1], args[2]);
 }

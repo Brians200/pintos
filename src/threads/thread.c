@@ -468,6 +468,7 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->next_handle = -1;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }
