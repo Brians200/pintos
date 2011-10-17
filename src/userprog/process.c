@@ -47,12 +47,13 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
   
+  //data->argc = 0;
   char* fn;
   char* save;
   int count = 0;
   fn = strtok_r(fn_copy," ",&save);
   data->file_name = fn;
-  while(((fn = strtok_r(NULL," ",&save))==NULL)&&count<32)
+  while(((fn = strtok_r(NULL," ",&save))!=NULL)&&count<32)
   {
     data->args[count] = fn;
     count++;
@@ -82,6 +83,22 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+  
+  /*char* fn;
+  char* save;
+  int count = 0;
+  fn = strtok_r(file_name," ",&save);
+  data->file_name = fn;
+  while(((fn = strtok_r(NULL," ",&save))!=NULL)&&count<32)
+  {
+    data->args[count] = fn;
+    count++;
+  }
+  data->argc = count;
+  
+  file_name = data->file_name;*/
+
+  
   success = load (file_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
@@ -329,6 +346,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (!setup_stack (esp))
     goto done;
   
+  //push the arguments onto the stack. added by us.
   init_stack();
 
   /* Start address. */
@@ -470,11 +488,12 @@ setup_stack (void **esp)
   return success;
 }
 
+/*; addl $4, %%esp*/
 #define push_arg(ARG)                            \
         ({                                                      \
           int retval;                                           \
           asm volatile                                          \
-            ("pushl %[arg]; addl $4, %%esp"      \
+            ("pushl %[arg]"                                     \
                : "=a" (retval)                                  \
                : [arg] "g" (ARG)                                \
                : "memory");                                     \

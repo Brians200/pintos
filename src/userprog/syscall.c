@@ -5,6 +5,7 @@
 #include "threads/thread.h"
 #include "threads/synch.h"
 #include "lib/string.h"
+#include "threads/vaddr.h"
 
 struct file_descriptor
 {
@@ -48,42 +49,87 @@ int sys_open(const char *ufile)
   return handle;
 }
 
-void sys_halt(void);
-void sys_exit(int status);
-pid_t sys_exec(const char*cmd_line);
-int sys_wait(pid_t pid);
-bool sys_create(const char *file, unsigned initial_size);
-bool sys_remove(const char *file);
-int sys_open(const char *file);
-int sys_filesize(int fd);
-int sys_read(int fd,void *buffer,unsigned size);
-int sys_write(int fd,const void *buffer,unsigned size);
-void sys_seek(int fd,unsigned position);
-unsigned sys_tell(int fd);
-void sys_close(int fd);
+void sys_halt(void)
+{
+  
+}
+
+void sys_exit(int status)
+{
+  
+}
+
+pid_t sys_exec(const char*cmd_line)
+{
+  
+}
+
+int sys_wait(pid_t pid)
+{
+  
+}
+
+bool sys_create(const char *file, unsigned initial_size)
+{
+  
+}
+
+bool sys_remove(const char *file)
+{
+  
+}
+
+int sys_filesize(int fd)
+{
+  
+}
+
+int sys_read(int fd,void *buffer,unsigned size)
+{
+  
+}
+
+int sys_write(int fd,const void *buffer,unsigned size)
+{
+  
+}
+
+void sys_seek(int fd,unsigned position)
+{
+  
+}
+
+unsigned sys_tell(int fd)
+{
+  
+}
+
+void sys_close(int fd)
+{
+  
+}
+
+char*
+copy_in_string(char* ufile)
+{
+  
+}
 
 void
 copy_in (void *output, void *esp, unsigned size)
 {
-  int x;
-  char *temp = (char*)output;
-  if(size == sizeof x)
+  uint32_t *dest = output;
+  uint32_t *src = esp;
+  for(;size>=0;size--,src++,dest++)
   {
-    //check here to see if esp is in user's memory
-    temp = *(char*)esp;
-  }
-  else if(size == 2 * sizeof x)
-  {
-    //do something, with two arguments, make sure that we are accessing user's memory
-    temp[0] = *(char*)esp;
-    temp[1] = *((char*)esp+1);
-  }
-  else if(size == 3 * sizeof x)
-  {
-    //do something, with three arguments, make sure that we are accessing user's memory
-    temp[0] = *(char*)esp;
-    temp[1] = *((char*)esp+1);
-    temp[2] = *((char*)esp+2);
+    if(!is_user_vaddr(src))
+    {
+      thread_exit();
+    }
+    else
+    {
+      *dest = *src;
+    }
   }
 }
 
