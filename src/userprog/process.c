@@ -60,6 +60,7 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
+  struct start_process_data *data = file_name_;
   struct intr_frame if_;
   bool success;
 
@@ -68,25 +69,27 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  
-  //data->argc = 0;
-  char* fn;
-  char* save;
-  int count = 0;
-  fn = strtok_r(file_name," ",&save);
-  data->file_name = fn;
-  while(((fn = strtok_r(NULL," ",&save))!=NULL)&&count<32)
-  {
-    data->args[count] = fn;
-    count++;
-  }
-  data->argc = count;
-  
-  file_name = data->file_name;
-  
+
   success = load (file_name, &if_.eip, &if_.esp);
 
-  /* If load failed, quit. */
+  /* Allocate wait_status. */
+  if(success)
+  {
+	data->wait_status = thread_current () ->wait_status = malloc (sizeof *data->wait_status);
+	success = data->wait_status != NULL:
+  }
+
+  /*Initialize wait_status*/
+  if(success)
+  {
+	//TODO
+  }
+
+  /*Notify parent thread and clean up. */
+  data->success = success;
+  sema_up (&exec->load_done);
+
+    /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
