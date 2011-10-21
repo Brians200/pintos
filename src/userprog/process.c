@@ -46,21 +46,6 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-  
-  //data->argc = 0;
-  char* fn;
-  char* save;
-  int count = 0;
-  fn = strtok_r(fn_copy," ",&save);
-  data->file_name = fn;
-  while(((fn = strtok_r(NULL," ",&save))!=NULL)&&count<32)
-  {
-    data->args[count] = fn;
-    count++;
-  }
-  data->argc = count;
-  
-  fn_copy = data->file_name;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
@@ -84,7 +69,8 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   
-  /*char* fn;
+  //data->argc = 0;
+  char* fn;
   char* save;
   int count = 0;
   fn = strtok_r(file_name," ",&save);
@@ -96,8 +82,7 @@ start_process (void *file_name_)
   }
   data->argc = count;
   
-  file_name = data->file_name;*/
-
+  file_name = data->file_name;
   
   success = load (file_name, &if_.eip, &if_.esp);
 
@@ -481,7 +466,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+        *esp = PHYS_BASE - 12;
       else
         palloc_free_page (kpage);
     }
@@ -503,6 +488,21 @@ setup_stack (void **esp)
 static void
 init_stack(void)
 {
+  uint8_t *args = data->args;
+  int i = data->argc - 1;
+  uint32_t *argMem;
+  for(;i>=0;i--)
+  {
+    push_arg(args[i]);
+  }
+  
+  i = data->argc - 1;
+  for(;i>=0;i--)
+  {
+    push_arg();
+  }
+  
+  //TODO: need to change this, somehow
   int i = data->argc - 1;
   char *arg;
   for(;i>=0;i--)

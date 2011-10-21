@@ -110,9 +110,27 @@ void sys_close(int fd)
 }
 
 char*
-copy_in_string(char* ufile)
+copy_in_string(char* ufile_)
 {
+  //int size = strlen(ufile);
+  size_t length;
+  char *kfile = palloc_get_page(0);
+  char *ufile = ufile_;
+  if(ks == NULL)
+    thread_exit();
+  for(length = 0;length < PGSIZE;length++)
+  {
+    if(!is_user_vaddr(ufile) || !get_user(kfile + length,ufile++))
+    {
+      palloc_free_page(ks);
+      thread_exit();
+    }
+    if(kfile[length] == '\0')
+      return kfile;
+  }
   
+  kfile[PGSIZE-1] = '\0';
+  return kfile;
 }
 
 void
@@ -122,13 +140,10 @@ copy_in (void *output, void *esp, unsigned size)
   uint32_t *src = esp;
   for(;size>=0;size--,src++,dest++)
   {
-    if(!is_user_vaddr(src))
+    //what else do I have to do?
+    if(!is_user_vaddr(src) || !get_user(dest,src))
     {
       thread_exit();
-    }
-    else
-    {
-      *dest = *src;
     }
   }
 }
@@ -181,4 +196,26 @@ syscall_handler (struct intr_frame *f)
 
   /* Execute the system call,and set the return value. */
   f->eax = sc->func (args[0], args[1], args[2]);
+}
+
+/* Copies a byte from user address USRC to kernel address DST.
+USRC must be below PHYS_BASE.
+Returns true if successful, false if a segfault occurred. */
+static inline bool
+get_user (uint8_t *dst, const uint8_t *usrc)
+{
+  int eax;
+  asm ("movl $1f, %%eax; movb %2, %%al; movb %%al, %0; 1:"
+    : "=m" (*dst), "=&a" (eax) : "m" (*usrc));
+  return eax != 0;
+}
+
+/* Writes BYTE to user address UDST. */
+static inline bool
+put_user (uint8_t *udst, uint8_t byte)
+{
+  int eax;
+  asm ("movl $1f, %%eax; movb %b2, %0; 1:"
+    : "=m" (*udst), "=&a" (eax) : "q" (byte));
+  return eax != 0;
 }
