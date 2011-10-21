@@ -25,6 +25,7 @@ struct start_process_data
   int argc = 0;
   struct semaphore load_done;
   bool success = false;
+  struct wait_status *wait_status;
 };
 
 //struct start_process_data *data;
@@ -49,6 +50,7 @@ process_execute (const char *file_name)
   
   strlcpy(thread_name,file_name,sizeof thread_name);
   strtok_r(thread_name," ",&save_ptr);
+  //is this where we get the arguments?
   tid = thread_create(thread_name,PRI_DEFAULT,start_process,&data);
   
   if(tid != TID_ERROR)
@@ -83,7 +85,6 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  char *file_name = file_name_;
   struct start_process_data *data = file_name_;
   struct intr_frame if_;
   bool success;
@@ -94,7 +95,7 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
 
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (data->file_name, &if_.eip, &if_.esp);
 
   /* Allocate wait_status. */
   if(success)
@@ -106,15 +107,17 @@ start_process (void *file_name_)
   /*Initialize wait_status*/
   if(success)
   {
+    data->wait_status->t = thread_current();
+    data->wait_status->done = false;
 	//TODO
   }
 
   /*Notify parent thread and clean up. */
   data->success = success;
-  sema_up (&exec->load_done);
+  sema_up (&data->load_done);
 
     /* If load failed, quit. */
-  palloc_free_page (file_name);
+  palloc_free_page (file_name);//does this need to stay here, it's not here in Project2SessionB
   if (!success) 
     thread_exit ();
 

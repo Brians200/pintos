@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -96,6 +97,8 @@ struct thread
     //Project 2
     int next_handle;
     char *fds;
+    struct list children;
+    struct wait_status *wait_status;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -105,6 +108,13 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+  
+struct wait_status
+{
+  struct thread *t;
+  struct list_elem elem;
+  bool done;
+};
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

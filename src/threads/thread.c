@@ -300,6 +300,7 @@ thread_exit (void)
   intr_disable ();
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
+  thread_current()->wait_status->done = true;
   schedule ();
   NOT_REACHED ();
 }
