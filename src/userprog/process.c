@@ -28,7 +28,7 @@ struct start_process_data
   struct wait_status *wait_status;
 };
 
-//struct start_process_data *data;
+struct start_process_data *global_data;
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -43,14 +43,13 @@ process_execute (const char *file_name)
   struct start_process_data data;
   char thread_name[15];
   char *save_ptr;
+  char *fn_copy;
   tid_t tid;
   
   data.file_name = file_name;
   sema_init(&data.load_done,0);
   
-  strlcpy(thread_name,file_name,sizeof thread_name);
-  strtok_r(thread_name," ",&save_ptr);
-  //is this where we get the arguments?
+  strlcpy(thread_name,strtok_r(file_name," ",&save_ptr),sizeof thread_name);
   tid = thread_create(thread_name,PRI_DEFAULT,start_process,&data);
   
   if(tid != TID_ERROR)
@@ -62,22 +61,6 @@ process_execute (const char *file_name)
       tid = TID_ERROR;
   }
   return tid;
-  
-//   char *fn_copy;
-//   tid_t tid;
-// 
-//   /* Make a copy of FILE_NAME.
-//      Otherwise there's a race between the caller and load(). */
-//   fn_copy = palloc_get_page (0);
-//   if (fn_copy == NULL)
-//     return TID_ERROR;
-//   strlcpy (fn_copy, file_name, PGSIZE);
-// 
-//   /* Create a new thread to execute FILE_NAME. */
-//   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-//   if (tid == TID_ERROR)
-//     palloc_free_page (fn_copy); 
-//   return tid;
 }
 
 /* A thread function that loads a user process and starts it
@@ -86,6 +69,7 @@ static void
 start_process (void *file_name_)
 {
   struct start_process_data *data = file_name_;
+  global_data = data;
   struct intr_frame if_;
   bool success;
 
@@ -362,7 +346,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   
   //push the arguments onto the stack. added by us.
-  init_stack();
+  init_stack(file_name);
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
@@ -516,8 +500,34 @@ setup_stack (void **esp)
         })
 
 static void
-init_stack(void)
+init_stack(char *file_name_)
 {
+  char *fn_toke;
+  char *save_ptr;
+  int count = 0;
+  fn_toke = strtok_r(file_name_," ",&save_ptr);
+  strlcpy(global_data->file_name,fn_toke,strlen(fn_toke)+1);
+  while(((fn_toke = strtok_r(NULL," ",&save_ptr))!=NULL)&&count<32)
+  {
+    strlcpy(global_data->args[count],fn_toke,strlen(fn_toke)+1);
+    count++;
+  }
+  global_data->argc = count;
+  
+  int for_i;
+  for(for_i=0; for_i<count; for_i++)
+  {
+    char *temp_arg = global_data->args[for_i];
+    int string_length = strlen(temp_arg) + 1;
+    int num_to_pad = 4 - (string_length %4);
+    int for_j;
+    for(for_j = 0; for_j < num_to_pad; for_j++)
+    {
+      //add '\0' to the end of the string temp_arg
+    }
+  }
+  
+  //TODO: need to change this, somehow
   uint8_t *args = data->args;
   int i = data->argc - 1;
   uint32_t *argMem;
@@ -532,7 +542,6 @@ init_stack(void)
     push_arg();
   }
   
-  //TODO: need to change this, somehow
   int i = data->argc - 1;
   char *arg;
   for(;i>=0;i--)
