@@ -43,13 +43,11 @@ process_execute (const char *file_name)
   struct start_process_data data;
   char thread_name[15];
   char *save_ptr;
-  char *fn_copy;
   tid_t tid;
   
   data.file_name = file_name;
   sema_init(&data.load_done,0);
-  
-  strlcpy(thread_name,strtok_r(file_name," ",&save_ptr),sizeof thread_name);
+  strlcpy(thread_name,file_name,sizeof thread_name);
   tid = thread_create(thread_name,PRI_DEFAULT,start_process,&data);
   
   if(tid != TID_ERROR)
@@ -262,6 +260,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
+  //TODO: do we need to do something else here, because file_name is more than just the file name
   file = filesys_open (file_name);
   if (file == NULL) 
     {
@@ -505,10 +504,14 @@ init_stack(char *file_name_)
   char *fn_toke;
   char *save_ptr;
   int count = 0;
+  
   fn_toke = strtok_r(file_name_," ",&save_ptr);
+  global_data->file_name = malloc((strlen(fn_toke)+1)*sizeof char);
   strlcpy(global_data->file_name,fn_toke,strlen(fn_toke)+1);
+  
   while(((fn_toke = strtok_r(NULL," ",&save_ptr))!=NULL)&&count<32)
   {
+    global_data->args[count] = malloc((strlen(fn_toke)+1)*sizeof char);
     strlcpy(global_data->args[count],fn_toke,strlen(fn_toke)+1);
     count++;
   }
@@ -523,8 +526,17 @@ init_stack(char *file_name_)
     int for_j;
     for(for_j = 0; for_j < num_to_pad; for_j++)
     {
+      global_data->args[for_i] = malloc((string_length + num_to_pad)*sizeof char);
+      strlcpy(global_data->args[for_i],temp_arg,string_length);
+      int another_for_loop;
+      for(another_for_loop = string_length; another_for_loop < string_length + num_to_pad; another_for_loop++)
+      {
+	(global_data->args[for_i])[another_for_loop] = '\0';
+      }
+      //does the above work?
       //add '\0' to the end of the string temp_arg
     }
+    free(temp_arg);
   }
   
   //TODO: need to change this, somehow

@@ -97,6 +97,7 @@ struct thread
     //Project 2
     int next_handle;
     char *fds;
+    struct list fds;
     struct list children;
     struct wait_status *wait_status;
 
