@@ -21,8 +21,6 @@
 struct start_process_data
 {
   char* file_name;
-  char* args[32];
-  int argc = 0;
   struct semaphore load_done;
   bool success = false;
   struct wait_status *wait_status;
@@ -479,31 +477,22 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
   return success;
 }
 
-/*; addl $4, %%esp*/
-#define push_arg(ARG)                            \
-        ({                                                      \
-          int retval;                                           \
-          asm volatile                                          \
-            ("pushl %[arg]"                                     \
-               : "=a" (retval)                                  \
-               : [arg] "g" (ARG)                                \
-               : "memory");                                     \
-          retval;                                               \
-        })
-
 static void
-init_stack(char *file_name_,void **esp)
+init_stack(char *file_name_,void **esp_)
 {
+  int32_t **esp = esp_;
   char *fn_toke;
   char *save_ptr;
   int count = 0;
+  char* args[32];
+  int argc = 0;
   
   fn_toke = strtok_r(file_name_," ",&save_ptr);
   global_data->file_name = malloc((strlen(fn_toke)+1)*sizeof char);
@@ -511,11 +500,11 @@ init_stack(char *file_name_,void **esp)
   
   while(((fn_toke = strtok_r(NULL," ",&save_ptr))!=NULL)&&count<32)
   {
-    global_data->args[count] = malloc((strlen(fn_toke)+1)*sizeof char);
-    strlcpy(global_data->args[count],fn_toke,strlen(fn_toke)+1);
+    args[count] = malloc((strlen(fn_toke)+1)*sizeof char);
+    strlcpy(args[count],fn_toke,strlen(fn_toke)+1);
     count++;
   }
-  global_data->argc = count;
+  argc = count;
   
   int for_i;
   int for_j;
@@ -526,16 +515,16 @@ init_stack(char *file_name_,void **esp)
   int string_lengths[32];
   for(for_i=0; for_i<count; for_i++)
   {
-    temp_arg = global_data->args[for_i];
+    temp_arg = args[for_i];
     string_length = strlen(temp_arg) + 1;
     num_to_pad = 4 - (string_length %4);
     for(for_j = 0; for_j < num_to_pad; for_j++)
     {
-      global_data->args[for_i] = malloc((string_length + num_to_pad)*sizeof char);
-      strlcpy(global_data->args[for_i],temp_arg,string_length);
+      args[for_i] = malloc((string_length + num_to_pad)*sizeof char);
+      strlcpy(args[for_i],temp_arg,string_length);
       for(another_for_loop = string_length; another_for_loop < string_length + num_to_pad; another_for_loop++)
       {
-	(global_data->args[for_i])[another_for_loop] = '\0';
+	(args[for_i])[another_for_loop] = '\0';
       }
       //does the above work?
     }
@@ -543,34 +532,33 @@ init_stack(char *file_name_,void **esp)
     free(temp_arg);
   }
   
-  uint32_t *args;
+  uint32_t *temp_args_int;
   for(for_i = count - 1; for_i >= 0; for_i--)
   {
-    args = global_data->args[for_i];
+    temp_args_int = args[for_i];
+    for(for_j = string_lengths[for_i] - 1; for_j >= 0; for_j--)
+    {
+      *esp -= 1;
+      **esp = temp_args_int[for_j];
+    }
+    args[for_i] = *esp;
   }
   
-  //TODO: need to change this, somehow
-  uint8_t *args = data->args;
-  int i = data->argc - 1;
-  uint32_t *argMem;
-  for(;i>=0;i--)
+  for(for_i = count - 1; for_i >= 0; for_i--)
   {
-    push_arg(args[i]);
+    *esp -= 1;
+    **esp = args[for_i];
   }
   
-  i = data->argc - 1;
-  for(;i>=0;i--)
-  {
-    push_arg();
-  }
+  args = *esp;
+  *esp -= 1;
+  **esp = args;
   
-  int i = data->argc - 1;
-  char *arg;
-  for(;i>=0;i--)
-  {
-    arg = data->args[i];
-    push_arg(arg);
-  }
+  *esp -= 1;
+  **esp = count;
+  
+  //TODO: what to do now for Return Value according to lec14.pdf page 48
+  *esp -= 1;
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
