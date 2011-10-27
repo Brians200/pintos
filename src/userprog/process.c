@@ -233,7 +233,7 @@ struct Elf32_Phdr
 #define PF_R 4          /* Readable. */
 
 static bool setup_stack (void **esp);
-static void init_stack(void);
+static void init_stack(char *file_name_,void **esp);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -345,7 +345,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   
   //push the arguments onto the stack. added by us.
-  init_stack(file_name);
+  init_stack(file_name,esp);
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
@@ -499,7 +499,7 @@ setup_stack (void **esp)
         })
 
 static void
-init_stack(char *file_name_)
+init_stack(char *file_name_,void **esp)
 {
   char *fn_toke;
   char *save_ptr;
@@ -518,25 +518,35 @@ init_stack(char *file_name_)
   global_data->argc = count;
   
   int for_i;
+  int for_j;
+  int another_for_loop;
+  char *temp_arg;
+  int string_length;
+  int num_to_pad;
+  int string_lengths[32];
   for(for_i=0; for_i<count; for_i++)
   {
-    char *temp_arg = global_data->args[for_i];
-    int string_length = strlen(temp_arg) + 1;
-    int num_to_pad = 4 - (string_length %4);
-    int for_j;
+    temp_arg = global_data->args[for_i];
+    string_length = strlen(temp_arg) + 1;
+    num_to_pad = 4 - (string_length %4);
     for(for_j = 0; for_j < num_to_pad; for_j++)
     {
       global_data->args[for_i] = malloc((string_length + num_to_pad)*sizeof char);
       strlcpy(global_data->args[for_i],temp_arg,string_length);
-      int another_for_loop;
       for(another_for_loop = string_length; another_for_loop < string_length + num_to_pad; another_for_loop++)
       {
 	(global_data->args[for_i])[another_for_loop] = '\0';
       }
       //does the above work?
-      //add '\0' to the end of the string temp_arg
     }
+    string_lengths[for_i] = (string_length + num_to_pad) / 4;
     free(temp_arg);
+  }
+  
+  uint32_t *args;
+  for(for_i = count - 1; for_i >= 0; for_i--)
+  {
+    args = global_data->args[for_i];
   }
   
   //TODO: need to change this, somehow
