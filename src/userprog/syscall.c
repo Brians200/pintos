@@ -56,14 +56,14 @@ void sys_halt(void)
 
 void sys_exit(int status)
 {
-//TODO: do some stuff with waiting or something
+  //TODO: do some stuff with waiting or something
   
   printf("%s: exit(%d)\n",thread_current()->name,status);
 }
 
 pid_t sys_exec(const char*cmd_line)
 {
-  	
+  //TODO: do it
 }
 
 int sys_wait(pid_t pid)
