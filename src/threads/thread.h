@@ -115,6 +115,8 @@ struct wait_status
   struct thread *t;
   struct list_elem elem;
   bool done;
+  struct semaphore sema;
+  int status;
 };
 
 /* If false (default), use round-robin scheduler.

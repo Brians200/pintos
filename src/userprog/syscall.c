@@ -57,8 +57,13 @@ void sys_halt(void)
 void sys_exit(int status)
 {
   //TODO: do some stuff with waiting or something
-  
-  printf("%s: exit(%d)\n",thread_current()->name,status);
+  struct thread *cur = thread_current();
+  printf("%s: exit(%d)\n",cur->name,status);
+  struct wait_status *local_wait_status = cur->wait_status;
+  local_wait_status->done = true;
+  local_wait_status->status = status;
+  sema_up(&(local_wait_status->sema));
+  list_remove(local_wait_status->elem);
 }
 
 pid_t sys_exec(const char*cmd_line)
@@ -66,14 +71,44 @@ pid_t sys_exec(const char*cmd_line)
   //TODO: do it
 }
 
+struct thread*
+find_child_by_pid(struct list *children,pid_t pid)
+{
+  if(!list_empty(children))
+  {
+    struct list_elem *e;
+    struct thread *cur_child;
+    for(e = list_begin(children); e != list_end(children); e = list_next(e))
+    {
+      cur_child = list_entry(e,struct wait_status,elem)->t;
+      if(cur_child->tid = pid)
+	return cur_child;
+    }
+  }
+  return NULL:
+}
+
 int sys_wait(pid_t pid)
 {
-  
+  struct thread *cur = thread_current();
+  struct list cur_children = cur->children;
+  struct thread *child_to_wait_on = find_child_by_pid(&cur_children,pid);
+  if(child_to_wait_on == NULL)
+  {
+    return -1;
+  }
+  struct wait_status *local_wait_status = child_to_wait_on->wait_status;
+  sema_down(&(local_wait_status->sema));
+  if(local_wait_status->done)
+  {
+    return local_wait_status->status;
+  }
+  //TODO:how do we tell if the child was terminated by the kernel?
 }
 
 bool sys_create(const char *file, unsigned initial_size)
 {
-  
+  //TODO: how do we create a file? I have no idea
 }
 
 bool sys_remove(const char *file)

@@ -89,6 +89,8 @@ start_process (void *file_name_)
   {
     data->wait_status->t = thread_current();
     data->wait_status->done = false;
+    sema_init(&(data->wait_status->sema),0);
+    data->wait_status->status = -1;
 	//TODO
   }
 
