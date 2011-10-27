@@ -108,17 +108,43 @@ int sys_wait(pid_t pid)
 
 bool sys_create(const char *file, unsigned initial_size)
 {
-  //TODO: how do we create a file? I have no idea
+  if(file == NULL)
+    sys_exit(-1);
+  return filesys_create(file,initial_size);
 }
 
 bool sys_remove(const char *file)
 {
-  
+  if(file == NULL)
+    sys_exit(-1);
+  return filesys_remove(file,initial_size);
+}
+
+struct file_descriptor*
+get_file_descriptor(struct list fds,int fd)
+{
+  if(!list_empty(fds))
+  {
+    struct list_elem *e;
+    struct file_descriptor *retVal;
+    for(e = list_begin(fds); e != list_end(fds); e = list_next(e))
+    {
+      retVal = list_entry(e,struct file_descriptor, elem);
+      if(retVal->fd == fd)
+	return retVal;
+    }
+  }
+  return NULL:
 }
 
 int sys_filesize(int fd)
 {
-  
+  struct thread *cur = thread_current();
+  struct list fds = cur->fds;
+  struct file_descriptor *cur_fd = get_file_descriptor(fds,fd);
+  if(cur_fd != NULL)
+    return file_length(cur_fd->file);
+  return -1;
 }
 
 int sys_read(int fd,void *buffer,unsigned size)
@@ -162,7 +188,12 @@ copy_in_string(char* ufile_)
       palloc_free_page(ks);
       thread_exit();
     }
-    if(kfile[length] == '\0')
+    if(kfile[length] == '\0')off_t
+file_length (struct file *file) 
+{
+  ASSERT (file != NULL);
+  return inode_length (file->inode);
+}
       return kfile;
   }
   
