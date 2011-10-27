@@ -51,7 +51,7 @@ int sys_open(const char *ufile)
 
 void sys_halt(void)
 {
-  
+  shutdown_power_off();
 }
 
 void sys_exit(int status)
@@ -61,7 +61,7 @@ void sys_exit(int status)
 
 pid_t sys_exec(const char*cmd_line)
 {
-  
+  	
 }
 
 int sys_wait(pid_t pid)
