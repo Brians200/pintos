@@ -64,6 +64,13 @@ void sys_exit(int status)
   local_wait_status->status = status;
   sema_up(&(local_wait_status->sema));
   list_remove(local_wait_status->elem);
+  
+  struct list fds = cur->fds;
+  struct list_elem *e;
+  for(e=list_begin(fds); e!=list_end(fds); e=list_next(e))
+  {
+    file_close(list_entry(e,struct file_descriptor,elem)->file);
+  }
 }
 
 pid_t sys_exec(const char*cmd_line)
@@ -149,27 +156,73 @@ int sys_filesize(int fd)
 
 int sys_read(int fd,void *buffer,unsigned size)
 {
-  
+  if(fd != 0)
+  {
+    struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
+    if(cur_fd != NULL)
+    {
+      return file_read(cur_fd->file,buffer,size);
+    }
+    return -1;
+  }
+  else
+  {
+    //TODO: if it is 0 we need to read from input?
+    input_init();
+    while(size > 0)
+    {
+      
+      size--;
+    }
+  }
 }
 
 int sys_write(int fd,const void *buffer,unsigned size)
 {
-  
+  if(fd != 1)
+  {
+    struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
+    if(cur_fd != NULL)
+    {
+      return file_write(cur_fd->file,buffer,size);
+    }
+    return -1;
+  }
+  else
+  {
+    //TODO: if it is 1 we need to output to console, might have to break the output up?
+    putbuf(buffer,size);
+  }
 }
 
 void sys_seek(int fd,unsigned position)
 {
-  
+  struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
+  if(cur_fd != NULL)
+  {
+    file_seek(cur_fd->file,position);
+  }
 }
 
 unsigned sys_tell(int fd)
 {
-  
+  struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
+  if(cur_fd != NULL)
+  {
+    return file_tell(cur_fd->file);
+  }
+  //TODO: what to return here if we reach this point?
+  return 0;
 }
 
 void sys_close(int fd)
 {
-  
+  struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
+  if(cur_fd != NULL)
+  {
+    file_close(cur_fd->file);
+  }
+  list_remove(cur_fd);
 }
 
 char*
