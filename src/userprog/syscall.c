@@ -97,7 +97,7 @@ void sys_exit(int status)
   struct wait_status *local_wait_status = cur->wait_status;
   local_wait_status->done = true;
   local_wait_status->status = status;
-  sema_up(&(local_wait_status->sema));
+  sema_up((local_wait_status->sema));
   list_remove(&local_wait_status->elem);
   
   struct list fds = cur->fds;
@@ -293,11 +293,11 @@ copy_in_string(const char* ufile_)
       thread_exit();
     }
     if(kfile[length] == '\0')
-      return kfile;
+      return (char*)kfile;
   }
   
   kfile[PGSIZE-1] = '\0';
-  return kfile;
+  return (char*)kfile;
 }
 
 void

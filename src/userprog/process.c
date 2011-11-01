@@ -236,7 +236,7 @@ struct Elf32_Phdr
 #define PF_R 4          /* Readable. */
 
 static bool setup_stack (void **esp);
-static void init_stack(char *file_name_,void **esp);
+static void init_stack(const char *file_name_,void **esp);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -490,9 +490,9 @@ setup_stack (void **esp)
 }
 
 static void
-init_stack(char *file_name_,void **esp_)
+init_stack(const char *file_name_,void **esp_)
 {
-  int32_t **esp = esp_;
+  int32_t **esp = (int32_t**)esp_;
   char *fn_toke;
   char *save_ptr;
   int count = 0;
@@ -540,24 +540,24 @@ init_stack(char *file_name_,void **esp_)
   uint32_t *temp_args_int;
   for(for_i = count - 1; for_i >= 0; for_i--)
   {
-    temp_args_int = args[for_i];
+    temp_args_int = (uint32_t*)args[for_i];
     for(for_j = string_lengths[for_i] - 1; for_j >= 0; for_j--)
     {
       *esp -= 1;
       **esp = temp_args_int[for_j];
     }
-    args[for_i] = *esp;
+    args[for_i] = (char*)*esp;
   }
   
   for(for_i = count - 1; for_i >= 0; for_i--)
   {
     *esp -= 1;
-    **esp = args[for_i];
+    **esp = (uint32_t*)args[for_i];
   }
   
-  args = *esp;
+  args = (char**)esp;
   *esp -= 1;
-  **esp = args;
+  **esp = (uint32_t**)args;
   
   *esp -= 1;
   **esp = count;
