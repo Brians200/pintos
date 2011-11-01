@@ -5,12 +5,6 @@
 #include "threads/thread.h"
 #include "threads/synch.h"
 #include "lib/string.h"
-#include "threads/vaddr.h"
-#include "filesys/filesys.h"
-#include "filesys/file.h"
-#include "threads/palloc.h"
-#include "threads/malloc.h"
-#include "devices/shutdown.h"
 
 /* Copies a byte from user address USRC to kernel address DST.
 USRC must be below PHYS_BASE.
