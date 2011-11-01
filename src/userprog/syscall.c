@@ -8,6 +8,8 @@
 #include "threads/vaddr.h"
 #include "filesys/filesys.h"
 #include "filesys/file.h"
+#include "threads/palloc.h"
+#include "threads/malloc.h"
 
 
 /* Copies a byte from user address USRC to kernel address DST.
