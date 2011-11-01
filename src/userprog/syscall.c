@@ -6,6 +6,9 @@
 #include "threads/synch.h"
 #include "lib/string.h"
 #include "threads/vaddr.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
+
 
 /* Copies a byte from user address USRC to kernel address DST.
 USRC must be below PHYS_BASE.
@@ -43,12 +46,14 @@ static void syscall_handler (struct intr_frame *);
 void
 syscall_init (void) 
 {
+  printf("testing, this is in syscall_init\n");
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   lock_init (&fs_lock);
 }
 
 int sys_open(const char *ufile)
 {
+  //printf("testing, this is in sys_open");
   char *kfile = copy_in_string (ufile);
   struct file_descriptor *fd;
   int handle = -1;
@@ -73,11 +78,13 @@ int sys_open(const char *ufile)
 
 void sys_halt(void)
 {
+  //printf("testing, this is in sys_halt");
   shutdown_power_off();
 }
 
 void sys_exit(int status)
 {
+  //printf("testing, this is in sys_exit");
   //TODO: do some stuff with waiting or something
   struct thread *cur = thread_current();
   printf("%s: exit(%d)\n",cur->name,status);
@@ -98,8 +105,8 @@ void sys_exit(int status)
 
 pid_t sys_exec(const char*cmd_line)
 {
+  //printf("testing, this is in sys_exec");
   //TODO: do it
-  printf("check");
   return process_execute(cmd_line);
 }
 
@@ -122,6 +129,7 @@ find_child_by_pid(struct list *children,pid_t pid)
 
 int sys_wait(pid_t pid)
 {
+  //printf("testing, this is in sys_wait");
   struct thread *cur = thread_current();
   struct list cur_children = cur->children;
   struct thread *child_to_wait_on = find_child_by_pid(&cur_children,pid);
@@ -135,11 +143,16 @@ int sys_wait(pid_t pid)
   {
     return local_wait_status->status;
   }
+  else
+  {
+    return -1;
+  }
   //TODO:how do we tell if the child was terminated by the kernel?
 }
 
 bool sys_create(const char *file, unsigned initial_size)
 {
+  //printf("testing, this is in sys_create");
   if(file == NULL)
     sys_exit(-1);
   return filesys_create(file,initial_size);
@@ -147,6 +160,7 @@ bool sys_create(const char *file, unsigned initial_size)
 
 bool sys_remove(const char *file)
 {
+  //printf("testing, this is in sys_remove");
   if(file == NULL)
     sys_exit(-1);
   return filesys_remove(file);
@@ -171,6 +185,7 @@ get_file_descriptor(struct list fds,int fd)
 
 int sys_filesize(int fd)
 {
+  //printf("testing, this is in sys_filesize");
   struct thread *cur = thread_current();
   struct list fds = cur->fds;
   struct file_descriptor *cur_fd = get_file_descriptor(fds,fd);
@@ -181,6 +196,7 @@ int sys_filesize(int fd)
 
 int sys_read(int fd,void *buffer,unsigned size)
 {
+  //printf("testing, this is in sys_read");
   if(fd != 0)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
@@ -200,10 +216,12 @@ int sys_read(int fd,void *buffer,unsigned size)
       size--;
     }
   }
+  return -1;
 }
 
 int sys_write(int fd,const void *buffer,unsigned size)
 {
+  //printf("testing, this is in sys_write");
   if(fd != 1)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
@@ -218,10 +236,12 @@ int sys_write(int fd,const void *buffer,unsigned size)
     //TODO: if it is 1 we need to output to console, might have to break the output up?
     putbuf(buffer,size);
   }
+  return -1;
 }
 
 void sys_seek(int fd,unsigned position)
 {
+  //printf("testing, this is in sys_seek");
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
@@ -231,6 +251,7 @@ void sys_seek(int fd,unsigned position)
 
 unsigned sys_tell(int fd)
 {
+  //printf("testing, this is in sys_tell");
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
@@ -242,6 +263,7 @@ unsigned sys_tell(int fd)
 
 void sys_close(int fd)
 {
+  //printf("testing, this is in sys_close");
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
@@ -253,7 +275,6 @@ void sys_close(int fd)
 char*
 copy_in_string(char* ufile_)
 {
-  //int size = strlen(ufile);
   size_t length;
   char *kfile = palloc_get_page(0);
   char *ufile = ufile_;
@@ -292,6 +313,7 @@ copy_in (void *output, void *esp, unsigned size)
 static void
 syscall_handler (struct intr_frame *f)
 {
+  printf("testing, this is in syscall_handler\n");
   typedef int syscall_function (int, int, int);
 
   /* A system call. */
