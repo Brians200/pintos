@@ -20,7 +20,7 @@ int sys_write(int fd,const void *buffer,unsigned size);
 void sys_seek(int fd,unsigned position);
 unsigned sys_tell(int fd);
 void sys_close(int fd);
-char* copy_in_string(char *ufile);
+char* copy_in_string(const char *ufile);
 void copy_in (void *output, void *esp, unsigned size);
 struct thread* find_child_by_pid(struct list *children,pid_t pid);
 struct file_descriptor* get_file_descriptor(struct list fds,int fd);
