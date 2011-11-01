@@ -300,7 +300,7 @@ copy_in (void *output, void *esp, unsigned size)
 {
   uint32_t *dest = output;
   uint32_t *src = esp;
-  for(;size>=0;size--,src++,dest++)
+  for(;size>0;size--,src++,dest++)
   {
     //what else do I have to do?
     if(!is_user_vaddr(src) || !get_user(dest,src))

@@ -19,6 +19,7 @@ void sys_seek(int fd,unsigned position);
 unsigned sys_tell(int fd);
 void sys_close(int fd);
 char* copy_in_string(char *ufile);
+void copy_in (void *output, void *esp, unsigned size);
 
 //static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
 //static inline bool put_user (uint8_t *udst, uint8_t byte);
