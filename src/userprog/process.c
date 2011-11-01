@@ -552,12 +552,12 @@ init_stack(const char *file_name_,void **esp_)
   for(for_i = count - 1; for_i >= 0; for_i--)
   {
     *esp -= 1;
-    **esp = (uint32_t*)args[for_i];
+    **esp = (uint32_t)args[for_i];
   }
   
   args = (char**)esp;
   *esp -= 1;
-  **esp = (uint32_t**)args;
+  **esp = (uint32_t)args;
   
   *esp -= 1;
   **esp = count;
