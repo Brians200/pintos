@@ -6,12 +6,12 @@
 #include "threads/synch.h"
 #include "lib/string.h"
 #include "threads/vaddr.h"
-#include "filesys/filesys.h"
+#include "../filesys/filesys.h"
 #include "filesys/file.h"
 #include "threads/palloc.h"
 #include "threads/malloc.h"
 #include "devices/shutdown.h"
-#include "process.c"
+#include "process.h"
 
 /* Copies a byte from user address USRC to kernel address DST.
 USRC must be below PHYS_BASE.
@@ -38,7 +38,7 @@ put_user (uint8_t *udst, uint8_t byte)
 struct file_descriptor
 {
   int handle;
-  char *file;
+  struct file *file;
   struct list_elem elem;
 };
 
@@ -141,7 +141,7 @@ int sys_wait(pid_t pid)
     return -1;
   }
   struct wait_status *local_wait_status = child_to_wait_on->wait_status;
-  sema_down(&(local_wait_status->sema));
+  sema_down((local_wait_status->sema));
   if(local_wait_status->done)
   {
     return local_wait_status->status;
