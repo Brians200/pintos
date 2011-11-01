@@ -10,7 +10,7 @@
 #include "filesys/file.h"
 #include "threads/palloc.h"
 #include "threads/malloc.h"
-
+#include "devices/shutdown.h"
 
 /* Copies a byte from user address USRC to kernel address DST.
 USRC must be below PHYS_BASE.

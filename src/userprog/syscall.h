@@ -20,6 +20,8 @@ unsigned sys_tell(int fd);
 void sys_close(int fd);
 char* copy_in_string(char *ufile);
 void copy_in (void *output, void *esp, unsigned size);
+struct thread* find_child_by_pid(struct list *children,pid_t pid);
+struct file_descriptor* get_file_descriptor(struct list fds,int fd);
 
 //static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
 //static inline bool put_user (uint8_t *udst, uint8_t byte);
