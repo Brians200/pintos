@@ -2,13 +2,8 @@
 #define USERPROG_SYSCALL_H
 
 #include "../lib/user/syscall.h"
-#include "threads/vaddr.h"
-#include "filesys/filesys.h"
-#include "filesys/file.h"
-#include "threads/palloc.h"
-#include "threads/malloc.h"
-#include "devices/shutdown.h"
-#include "process.c"
+#include "threads/thread.h"
+#include "lib/kernel/list.h"
 
 void syscall_init (void);
 int sys_open(const char *ufile);
