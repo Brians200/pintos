@@ -12,6 +12,8 @@
 #include "threads/malloc.h"
 #include "devices/shutdown.h"
 #include "process.h"
+#include "devices/input.h"
+
 
 /* Copies a byte from user address USRC to kernel address DST.
 USRC must be below PHYS_BASE.
