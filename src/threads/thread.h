@@ -96,7 +96,7 @@ struct thread
     
     //Project 2
     int next_handle;
-    char *fds;
+    //char *fds;
     struct list fds;
     struct list children;
     struct wait_status *wait_status;
@@ -115,7 +115,7 @@ struct wait_status
   struct thread *t;
   struct list_elem elem;
   bool done;
-  struct semaphore sema;
+  struct semaphore *sema;
   int status;
 };
 

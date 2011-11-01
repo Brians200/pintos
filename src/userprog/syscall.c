@@ -7,6 +7,28 @@
 #include "lib/string.h"
 #include "threads/vaddr.h"
 
+/* Copies a byte from user address USRC to kernel address DST.
+USRC must be below PHYS_BASE.
+Returns true if successful, false if a segfault occurred. */
+static inline bool
+get_user (uint8_t *dst, const uint8_t *usrc)
+{
+  int eax;
+  asm ("movl $1f, %%eax; movb %2, %%al; movb %%al, %0; 1:"
+    : "=m" (*dst), "=&a" (eax) : "m" (*usrc));
+  return eax != 0;
+}
+
+/* Writes BYTE to user address UDST. */
+static inline bool
+put_user (uint8_t *udst, uint8_t byte)
+{
+  int eax;
+  asm ("movl $1f, %%eax; movb %b2, %0; 1:"
+    : "=m" (*udst), "=&a" (eax) : "q" (byte));
+  return eax != 0;
+}
+
 struct file_descriptor
 {
   int handle;
@@ -59,15 +81,16 @@ void sys_exit(int status)
   //TODO: do some stuff with waiting or something
   struct thread *cur = thread_current();
   printf("%s: exit(%d)\n",cur->name,status);
+  
   struct wait_status *local_wait_status = cur->wait_status;
   local_wait_status->done = true;
   local_wait_status->status = status;
   sema_up(&(local_wait_status->sema));
-  list_remove(local_wait_status->elem);
+  list_remove(&local_wait_status->elem);
   
   struct list fds = cur->fds;
   struct list_elem *e;
-  for(e=list_begin(fds); e!=list_end(fds); e=list_next(e))
+  for(e=list_begin(&fds); e!=list_end(&fds); e=list_next(e))
   {
     file_close(list_entry(e,struct file_descriptor,elem)->file);
   }
@@ -76,6 +99,8 @@ void sys_exit(int status)
 pid_t sys_exec(const char*cmd_line)
 {
   //TODO: do it
+  printf("check");
+  return process_execute(cmd_line);
 }
 
 struct thread*
@@ -92,7 +117,7 @@ find_child_by_pid(struct list *children,pid_t pid)
 	return cur_child;
     }
   }
-  return NULL:
+  return NULL;
 }
 
 int sys_wait(pid_t pid)
@@ -124,24 +149,24 @@ bool sys_remove(const char *file)
 {
   if(file == NULL)
     sys_exit(-1);
-  return filesys_remove(file,initial_size);
+  return filesys_remove(file);
 }
 
 struct file_descriptor*
 get_file_descriptor(struct list fds,int fd)
 {
-  if(!list_empty(fds))
+  if(!list_empty(&fds))
   {
     struct list_elem *e;
     struct file_descriptor *retVal;
-    for(e = list_begin(fds); e != list_end(fds); e = list_next(e))
+    for(e = list_begin(&fds); e != list_end(&fds); e = list_next(e))
     {
       retVal = list_entry(e,struct file_descriptor, elem);
-      if(retVal->fd == fd)
+      if(retVal->handle == fd)
 	return retVal;
     }
   }
-  return NULL:
+  return NULL;
 }
 
 int sys_filesize(int fd)
@@ -232,21 +257,16 @@ copy_in_string(char* ufile_)
   size_t length;
   char *kfile = palloc_get_page(0);
   char *ufile = ufile_;
-  if(ks == NULL)
+  if(kfile == NULL)
     thread_exit();
   for(length = 0;length < PGSIZE;length++)
   {
     if(!is_user_vaddr(ufile) || !get_user(kfile + length,ufile++))
     {
-      palloc_free_page(ks);
+      palloc_free_page(kfile);
       thread_exit();
     }
-    if(kfile[length] == '\0')off_t
-file_length (struct file *file) 
-{
-  ASSERT (file != NULL);
-  return inode_length (file->inode);
-}
+    if(kfile[length] == '\0')
       return kfile;
   }
   
@@ -317,26 +337,4 @@ syscall_handler (struct intr_frame *f)
 
   /* Execute the system call,and set the return value. */
   f->eax = sc->func (args[0], args[1], args[2]);
-}
-
-/* Copies a byte from user address USRC to kernel address DST.
-USRC must be below PHYS_BASE.
-Returns true if successful, false if a segfault occurred. */
-static inline bool
-get_user (uint8_t *dst, const uint8_t *usrc)
-{
-  int eax;
-  asm ("movl $1f, %%eax; movb %2, %%al; movb %%al, %0; 1:"
-    : "=m" (*dst), "=&a" (eax) : "m" (*usrc));
-  return eax != 0;
-}
-
-/* Writes BYTE to user address UDST. */
-static inline bool
-put_user (uint8_t *udst, uint8_t byte)
-{
-  int eax;
-  asm ("movl $1f, %%eax; movb %b2, %0; 1:"
-    : "=m" (*udst), "=&a" (eax) : "q" (byte));
-  return eax != 0;
 }

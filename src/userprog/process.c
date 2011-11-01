@@ -21,8 +21,8 @@
 struct start_process_data
 {
   char* file_name;
-  struct semaphore load_done;
-  bool success = false;
+  struct semaphore *load_done;
+  bool success;
   struct wait_status *wait_status;
 };
 
@@ -40,17 +40,16 @@ process_execute (const char *file_name)
 {
   struct start_process_data data;
   char thread_name[15];
-  char *save_ptr;
   tid_t tid;
   
   data.file_name = file_name;
-  sema_init(&data.load_done,0);
+  sema_init(data.load_done,0);
   strlcpy(thread_name,file_name,sizeof thread_name);
   tid = thread_create(thread_name,PRI_DEFAULT,start_process,&data);
   
   if(tid != TID_ERROR)
   {
-    sema_down(&data.load_done);
+    sema_down(data.load_done);
     if(data.success)
       list_push_back(&thread_current()->children,&data.wait_status->elem);
     else
@@ -81,7 +80,7 @@ start_process (void *file_name_)
   if(success)
   {
 	data->wait_status = thread_current () ->wait_status = malloc (sizeof *data->wait_status);
-	success = data->wait_status != NULL:
+	success = data->wait_status != NULL;
   }
 
   /*Initialize wait_status*/
@@ -89,17 +88,17 @@ start_process (void *file_name_)
   {
     data->wait_status->t = thread_current();
     data->wait_status->done = false;
-    sema_init(&(data->wait_status->sema),0);
+    sema_init((data->wait_status->sema),0);
     data->wait_status->status = -1;
 	//TODO
   }
 
   /*Notify parent thread and clean up. */
   data->success = success;
-  sema_up (&data->load_done);
+  sema_up (data->load_done);
 
     /* If load failed, quit. */
-  palloc_free_page (file_name);//does this need to stay here, it's not here in Project2SessionB
+  //palloc_free_page (file_name);//does this need to stay here, it's not here in Project2SessionB
   if (!success) 
     thread_exit ();
 
@@ -493,16 +492,16 @@ init_stack(char *file_name_,void **esp_)
   char *fn_toke;
   char *save_ptr;
   int count = 0;
-  char* args[32];
+  char** args = malloc(32);
   int argc = 0;
   
   fn_toke = strtok_r(file_name_," ",&save_ptr);
-  global_data->file_name = malloc((strlen(fn_toke)+1)*sizeof char);
+  global_data->file_name = malloc((strlen(fn_toke)+1)* sizeof(char));
   strlcpy(global_data->file_name,fn_toke,strlen(fn_toke)+1);
   
   while(((fn_toke = strtok_r(NULL," ",&save_ptr))!=NULL)&&count<32)
   {
-    args[count] = malloc((strlen(fn_toke)+1)*sizeof char);
+    args[count] = malloc((strlen(fn_toke)+1)*sizeof(char));
     strlcpy(args[count],fn_toke,strlen(fn_toke)+1);
     count++;
   }
@@ -522,7 +521,7 @@ init_stack(char *file_name_,void **esp_)
     num_to_pad = 4 - (string_length %4);
     for(for_j = 0; for_j < num_to_pad; for_j++)
     {
-      args[for_i] = malloc((string_length + num_to_pad)*sizeof char);
+      args[for_i] = malloc((string_length + num_to_pad)*sizeof(char));
       strlcpy(args[for_i],temp_arg,string_length);
       for(another_for_loop = string_length; another_for_loop < string_length + num_to_pad; another_for_loop++)
       {
