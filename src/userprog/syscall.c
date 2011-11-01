@@ -125,7 +125,7 @@ find_child_by_pid(struct list *children,pid_t pid)
     for(e = list_begin(children); e != list_end(children); e = list_next(e))
     {
       cur_child = list_entry(e,struct wait_status,elem)->t;
-      if(cur_child->tid = pid)
+      if(cur_child->tid == pid)
 	return cur_child;
     }
   }
@@ -274,15 +274,15 @@ void sys_close(int fd)
   {
     file_close(cur_fd->file);
   }
-  list_remove(cur_fd);
+  list_remove(&cur_fd->elem);
 }
 
 char*
-copy_in_string(char* ufile_)
+copy_in_string(const char* ufile_)
 {
   size_t length;
-  char *kfile = palloc_get_page(0);
-  char *ufile = ufile_;
+  uint8_t *kfile = palloc_get_page(0);
+  uint8_t *ufile = ufile_;
   if(kfile == NULL)
     thread_exit();
   for(length = 0;length < PGSIZE;length++)
@@ -303,8 +303,8 @@ copy_in_string(char* ufile_)
 void
 copy_in (void *output, void *esp, unsigned size)
 {
-  uint32_t *dest = output;
-  uint32_t *src = esp;
+  uint8_t *dest = output;
+  uint8_t *src = esp;
   for(;size>0;size--,src++,dest++)
   {
     //what else do I have to do?
