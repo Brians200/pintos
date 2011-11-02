@@ -24,7 +24,7 @@
 struct start_process_data
 {
   char* file_name;
-  struct semaphore *load_done;
+  struct semaphore load_done;
   bool success;
   struct wait_status *wait_status;
 };
@@ -47,13 +47,13 @@ process_execute (const char *file_name)
   tid_t tid;
   
   data.file_name = file_name;
-  sema_init(data.load_done,0);
+  sema_init(&data.load_done,0);
   strlcpy(thread_name,file_name,sizeof thread_name);
   tid = thread_create(thread_name,PRI_DEFAULT,start_process,&data);
   
   if(tid != TID_ERROR)
   {
-    sema_down(data.load_done);
+    sema_down(&data.load_done);
     if(data.success)
       list_push_back(&thread_current()->children,&data.wait_status->elem);
     else
@@ -100,7 +100,7 @@ start_process (void *file_name_)
 
   /*Notify parent thread and clean up. */
   data->success = success;
-  sema_up (data->load_done);
+  sema_up (&data->load_done);
 
     /* If load failed, quit. */
   //palloc_free_page (file_name);//does this need to stay here, it's not here in Project2SessionB

@@ -104,10 +104,12 @@ void sys_exit(int status)
   
   struct list fds = cur->fds;
   struct list_elem *e;
+  lock_acquire(&fs_lock);
   for(e=list_begin(&fds); e!=list_end(&fds); e=list_next(e))
   {
     file_close(list_entry(e,struct file_descriptor,elem)->file);
   }
+  lock_release(&fs_lock);
 }
 
 pid_t sys_exec(const char*cmd_line)
@@ -162,7 +164,10 @@ bool sys_create(const char *file, unsigned initial_size)
   printf("testing, this is in sys_create\n");
   if(file == NULL)
     sys_exit(-1);
-  return filesys_create(file,initial_size);
+  lock_acquire(&fs_lock);
+  bool retVal = filesys_create(file,initial_size);
+  lock_release(&fs_lock);
+  return retVal;
 }
 
 bool sys_remove(const char *file)
@@ -170,7 +175,10 @@ bool sys_remove(const char *file)
   printf("testing, this is in sys_remove\n");
   if(file == NULL)
     sys_exit(-1);
-  return filesys_remove(file);
+  lock_acquire(&fs_lock);
+  bool retVal = filesys_remove(file);
+  lock_release(&fs_lock);
+  return retVal;
 }
 
 struct file_descriptor*
@@ -193,25 +201,29 @@ get_file_descriptor(struct list fds,int fd)
 int sys_filesize(int fd)
 {
   printf("testing, this is in sys_filesize\n");
+  int retVal = -1;
+  lock_acquire(&fs_lock);
   struct thread *cur = thread_current();
   struct list fds = cur->fds;
   struct file_descriptor *cur_fd = get_file_descriptor(fds,fd);
   if(cur_fd != NULL)
-    return file_length(cur_fd->file);
-  return -1;
+    retVal = file_length(cur_fd->file);
+  lock_release(&fs_lock);
+  return retVal;
 }
 
 int sys_read(int fd,void *buffer,unsigned size)
 {
   printf("testing, this is in sys_read\n");
+  int retVal = -1;
+  lock_acquire(&fs_lock);
   if(fd != 0)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
     if(cur_fd != NULL)
     {
-      return file_read(cur_fd->file,buffer,size);
+      retVal = file_read(cur_fd->file,buffer,size);
     }
-    return -1;
   }
   else
   {
@@ -223,60 +235,70 @@ int sys_read(int fd,void *buffer,unsigned size)
       size--;
     }
   }
-  return -1;
+  lock_release(&fs_lock);
+  return retVal;
 }
 
 int sys_write(int fd,const void *buffer,unsigned size)
 {
   printf("testing, this is in sys_write\n");
+  int retVal = -1;
+  lock_acquire(&fs_lock);
   if(fd != 1)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
     if(cur_fd != NULL)
     {
-      return file_write(cur_fd->file,buffer,size);
+      retVal = file_write(cur_fd->file,buffer,size);
     }
-    return -1;
   }
   else
   {
     //TODO: if it is 1 we need to output to console, might have to break the output up?
     putbuf(buffer,size);
   }
+  lock_release(&fs_lock);
   return -1;
 }
 
 void sys_seek(int fd,unsigned position)
 {
   printf("testing, this is in sys_seek\n");
+  lock_acquire(&fs_lock);
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
     file_seek(cur_fd->file,position);
   }
+  lock_release(&fs_lock);
 }
 
 unsigned sys_tell(int fd)
 {
   printf("testing, this is in sys_tell\n");
+  unsigned retVal = 0;
+  lock_acquire(&fs_lock);
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
-    return file_tell(cur_fd->file);
+    retVal = file_tell(cur_fd->file);
   }
+  lock_release(&fs_lock);
   //TODO: what to return here if we reach this point?
-  return 0;
+  return retVal;
 }
 
 void sys_close(int fd)
 {
   printf("testing, this is in sys_close\n");
+  lock_acquire(&fs_lock);
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
     file_close(cur_fd->file);
   }
   list_remove(&cur_fd->elem);
+  lock_release(&fs_lock);
 }
 
 char*
