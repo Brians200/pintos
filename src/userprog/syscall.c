@@ -51,14 +51,16 @@ static void syscall_handler (struct intr_frame *);
 void
 syscall_init (void) 
 {
-  printf("testing, this is in syscall_init\n");
+  printf("1 testing, this is in syscall_init\n");
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  printf("2 testing, this is in syscall_init\n");
   lock_init (&fs_lock);
+  printf("3 testing, this is in syscall_init\n");
 }
 
 int sys_open(const char *ufile)
 {
-  //printf("testing, this is in sys_open");
+  printf("testing, this is in sys_open\n");
   char *kfile = copy_in_string (ufile);
   struct file_descriptor *fd;
   int handle = -1;
@@ -83,13 +85,13 @@ int sys_open(const char *ufile)
 
 void sys_halt(void)
 {
-  //printf("testing, this is in sys_halt");
+  printf("testing, this is in sys_halt\n");
   shutdown_power_off();
 }
 
 void sys_exit(int status)
 {
-  //printf("testing, this is in sys_exit");
+  printf("testing, this is in sys_exit\n");
   //TODO: do some stuff with waiting or something
   struct thread *cur = thread_current();
   printf("%s: exit(%d)\n",cur->name,status);
@@ -110,7 +112,7 @@ void sys_exit(int status)
 
 pid_t sys_exec(const char*cmd_line)
 {
-  //printf("testing, this is in sys_exec");
+  printf("testing, this is in sys_exec\n");
   //TODO: do it
   return process_execute(cmd_line);
 }
@@ -134,7 +136,7 @@ find_child_by_pid(struct list *children,pid_t pid)
 
 int sys_wait(pid_t pid)
 {
-  //printf("testing, this is in sys_wait");
+  printf("testing, this is in sys_wait\n");
   struct thread *cur = thread_current();
   struct list cur_children = cur->children;
   struct thread *child_to_wait_on = find_child_by_pid(&cur_children,pid);
@@ -157,7 +159,7 @@ int sys_wait(pid_t pid)
 
 bool sys_create(const char *file, unsigned initial_size)
 {
-  //printf("testing, this is in sys_create");
+  printf("testing, this is in sys_create\n");
   if(file == NULL)
     sys_exit(-1);
   return filesys_create(file,initial_size);
@@ -165,7 +167,7 @@ bool sys_create(const char *file, unsigned initial_size)
 
 bool sys_remove(const char *file)
 {
-  //printf("testing, this is in sys_remove");
+  printf("testing, this is in sys_remove\n");
   if(file == NULL)
     sys_exit(-1);
   return filesys_remove(file);
@@ -190,7 +192,7 @@ get_file_descriptor(struct list fds,int fd)
 
 int sys_filesize(int fd)
 {
-  //printf("testing, this is in sys_filesize");
+  printf("testing, this is in sys_filesize\n");
   struct thread *cur = thread_current();
   struct list fds = cur->fds;
   struct file_descriptor *cur_fd = get_file_descriptor(fds,fd);
@@ -201,7 +203,7 @@ int sys_filesize(int fd)
 
 int sys_read(int fd,void *buffer,unsigned size)
 {
-  //printf("testing, this is in sys_read");
+  printf("testing, this is in sys_read\n");
   if(fd != 0)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
@@ -226,7 +228,7 @@ int sys_read(int fd,void *buffer,unsigned size)
 
 int sys_write(int fd,const void *buffer,unsigned size)
 {
-  //printf("testing, this is in sys_write");
+  printf("testing, this is in sys_write\n");
   if(fd != 1)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
@@ -246,7 +248,7 @@ int sys_write(int fd,const void *buffer,unsigned size)
 
 void sys_seek(int fd,unsigned position)
 {
-  //printf("testing, this is in sys_seek");
+  printf("testing, this is in sys_seek\n");
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
@@ -256,7 +258,7 @@ void sys_seek(int fd,unsigned position)
 
 unsigned sys_tell(int fd)
 {
-  //printf("testing, this is in sys_tell");
+  printf("testing, this is in sys_tell\n");
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
@@ -268,7 +270,7 @@ unsigned sys_tell(int fd)
 
 void sys_close(int fd)
 {
-  //printf("testing, this is in sys_close");
+  printf("testing, this is in sys_close\n");
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {

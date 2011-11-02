@@ -41,6 +41,7 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
+  printf("testing, this is in process_execute\n");
   struct start_process_data data;
   char thread_name[15];
   tid_t tid;
@@ -66,6 +67,7 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
+  printf("testing, this is in start_process\n");
   struct start_process_data *data = file_name_;
   global_data = data;
   struct intr_frame if_;
@@ -127,7 +129,10 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(true);
+  printf("testing, this is in process_wait");
+  while(true)
+  {
+  }
   return -1;
 }
 
@@ -249,6 +254,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, void (**eip) (void), void **esp) 
 {
+  printf("testing, this is in load\n");
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
@@ -492,6 +498,7 @@ setup_stack (void **esp)
 static void
 init_stack(const char *file_name_,void **esp_)
 {
+  printf("testing, this is in init_stack\n");
   int32_t **esp = (int32_t**)esp_;
   char *fn_toke;
   char *save_ptr;
