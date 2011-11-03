@@ -99,7 +99,7 @@ void sys_exit(int status)
   struct wait_status *local_wait_status = cur->wait_status;
   local_wait_status->done = true;
   local_wait_status->status = status;
-  sema_up((local_wait_status->sema));
+  sema_up(&(local_wait_status->wait_status_sema));
   list_remove(&local_wait_status->elem);
   
   struct list fds = cur->fds;
@@ -147,7 +147,7 @@ int sys_wait(pid_t pid)
     return -1;
   }
   struct wait_status *local_wait_status = child_to_wait_on->wait_status;
-  sema_down((local_wait_status->sema));
+  sema_down(&(local_wait_status->wait_status_sema));
   if(local_wait_status->done)
   {
     return local_wait_status->status;

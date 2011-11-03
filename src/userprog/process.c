@@ -93,7 +93,7 @@ start_process (void *file_name_)
   {
     data->wait_status->t = thread_current();
     data->wait_status->done = false;
-    sema_init((data->wait_status->sema),0);
+    sema_init(&(data->wait_status->wait_status_sema),0);
     data->wait_status->status = -1;
 	//TODO
   }
@@ -495,82 +495,139 @@ setup_stack (void **esp)
   return success;
 }
 
+/* Writes BYTE to user address UDST. */
+static inline bool
+put_user (uint8_t *udst, uint8_t byte)
+{
+  int eax;
+  asm ("movl $1f, %%eax; movb %b2, %0; 1:"
+    : "=m" (*udst), "=&a" (eax) : "q" (byte));
+  return eax != 0;
+}
+
 static void
 init_stack(const char *file_name_,void **esp_)
 {
   printf("testing, this is in init_stack\n");
-  int32_t **esp = (int32_t**)esp_;
+  
+  uint8_t **esp = (uint8_t**)esp_;
+  char *fn;
   char *fn_toke;
   char *save_ptr;
   int count = 0;
-  char** args = malloc(32);
-  int argc = 0;
+  char* args[32];
   
-  fn_toke = strtok_r(file_name_," ",&save_ptr);
-  global_data->file_name = malloc((strlen(fn_toke)+1)* sizeof(char));
-  strlcpy(global_data->file_name,fn_toke,strlen(fn_toke)+1);
-  
-  while(((fn_toke = strtok_r(NULL," ",&save_ptr))!=NULL)&&count<32)
+  fn = malloc(strlen(file_name_)+1);
+  strlcpy(fn,file_name_,strlen(file_name_)+1);
+  fn_toke = strtok_r(fn," ",&save_ptr);
+  if(fn_toke != NULL)
   {
-    args[count] = malloc((strlen(fn_toke)+1)*sizeof(char));
-    strlcpy(args[count],fn_toke,strlen(fn_toke)+1);
+    args[0] = malloc((strlen(fn_toke)+1)*sizeof(char));
+    strlcpy(args[0],fn_toke,strlen(fn_toke)+1);
     count++;
-  }
-  argc = count;
-  
-  int for_i;
-  int for_j;
-  int another_for_loop;
-  char *temp_arg;
-  int string_length;
-  int num_to_pad;
-  int string_lengths[32];
-  for(for_i=0; for_i<count; for_i++)
-  {
-    temp_arg = args[for_i];
-    string_length = strlen(temp_arg) + 1;
-    num_to_pad = 4 - (string_length %4);
-    for(for_j = 0; for_j < num_to_pad; for_j++)
+    
+    printf("%s,%d\n",fn_toke,strlen(fn_toke));
+    while(((fn_toke = strtok_r(NULL," ",&save_ptr))!=NULL)&&(count<32))
     {
-      args[for_i] = malloc((string_length + num_to_pad)*sizeof(char));
-      strlcpy(args[for_i],temp_arg,string_length);
-      for(another_for_loop = string_length; another_for_loop < string_length + num_to_pad; another_for_loop++)
+      args[count] = malloc((strlen(fn_toke)+1)*sizeof(char));
+      strlcpy(args[count],fn_toke,strlen(fn_toke));
+      count++;
+    }
+    
+    int num_to_pad = 0;
+    char pad = '\0';
+    int for_i;
+    int for_j;
+    int argLength = 0;
+    printf("%d\n",count);
+    for(for_i = count - 1; for_i >= 0; for_i--)
+    {
+      argLength = strlen(args[for_i]);
+      printf("%s\n",args[for_i]);
+      printf("                                    argLength:%d\n",argLength);
+      num_to_pad = 4 - (argLength%4);
+      printf("                                     num_to_pad:%d\n",num_to_pad);
+      for(for_j = 0; for_j < num_to_pad; for_j++)
       {
-	(args[for_i])[another_for_loop] = '\0';
+	*esp -= 1;
+	put_user(*esp,pad);
       }
-      //does the above work?
+      for(for_j = argLength-1; for_j >= 0; for_j--)
+      {
+	*esp -= 1;
+	put_user(*esp,args[for_i][for_j]);
+      }
+      args[count] = *esp;
     }
-    string_lengths[for_i] = (string_length + num_to_pad) / 4;
-    free(temp_arg);
-  }
-  
-  uint32_t *temp_args_int;
-  for(for_i = count - 1; for_i >= 0; for_i--)
-  {
-    temp_args_int = (uint32_t*)args[for_i];
-    for(for_j = string_lengths[for_i] - 1; for_j >= 0; for_j--)
-    {
-      *esp -= 1;
-      **esp = temp_args_int[for_j];
-    }
-    args[for_i] = (char*)*esp;
-  }
-  
-  for(for_i = count - 1; for_i >= 0; for_i--)
-  {
+    
+    uint32_t argLoc = (uint32_t)NULL;
+    //pushing on a NULL sentinel
     *esp -= 1;
-    **esp = (uint32_t)args[for_i];
+    put_user(*esp,(uint8_t)argLoc);
+    argLoc = argLoc>>8;
+    *esp -= 1;
+    put_user(*esp,(uint8_t)(argLoc));
+    argLoc = argLoc>>8;
+    *esp -= 1;
+    put_user(*esp,(uint8_t)(argLoc));
+    argLoc = argLoc>>8;
+    *esp -= 1;
+    put_user(*esp,(uint8_t)(argLoc));
+    for(for_i = count - 1; for_i >= 0; for_i--)
+    {
+      argLoc = (uint32_t)args[for_i];
+      *esp -= 1;
+      put_user(*esp,(uint8_t)argLoc);
+      argLoc = argLoc>>8;
+      *esp -= 1;
+      put_user(*esp,(uint8_t)(argLoc));
+      argLoc = argLoc>>8;
+      *esp -= 1;
+      put_user(*esp,(uint8_t)(argLoc));
+      argLoc = argLoc>>8;
+      *esp -= 1;
+      put_user(*esp,(uint8_t)(argLoc));
+    }
+    
+    //args = (char**)esp;
+    char **blah = (char**)esp;
+    argLoc = (uint32_t)blah;
+    *esp -= 1;
+    put_user(*esp,(uint8_t)argLoc);
+    argLoc = argLoc>>8;
+    *esp -= 1;
+    put_user(*esp,(uint8_t)(argLoc));
+    argLoc = argLoc>>8;
+    *esp -= 1;
+    put_user(*esp,(uint8_t)(argLoc));
+    argLoc = argLoc>>8;
+    *esp -= 1;
+    put_user(*esp,(uint8_t)(argLoc));
   }
   
-  args = (char**)esp;
+  int argc = (uint32_t)count;
+  printf("1                                 this is the arg count:%d\n",argc);
   *esp -= 1;
-  **esp = (uint32_t)args;
+  put_user(*esp,(uint8_t)argc);
+  printf("        %d\n",(uint32_t)**esp);
+  argc = argc>>8;
+  printf("2                                 this is the arg count:%d\n",argc);
+  *esp -= 1;
+  put_user(*esp,(uint8_t)(argc));
+  printf("         %d\n",(uint32_t)**esp);
+  argc = argc>>8;
+  printf("3                                 this is the arg count:%d\n",argc);
+  *esp -= 1;
+  put_user(*esp,(uint8_t)(argc));
+  printf("         %d\n",(uint32_t)**esp);
+  argc = argc>>8;
+  printf("4                                 this is the arg count:%d\n",argc);
+  *esp -= 1;
+  put_user(*esp,(uint8_t)(argc));
+  printf("         %d\n",(uint32_t)**esp);
   
-  *esp -= 1;
-  **esp = count;
-  
-  //TODO: what to do now for Return Value according to lec14.pdf page 48
-  *esp -= 1;
+  //*esp -= 1;
+  //*esp -= 3;
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
