@@ -18,12 +18,6 @@ test_alarm_single (void)
   test_sleep (5, 1);
 }
 
-void 
-test_alarm_mucho (void)
-{
-  test_sleep(5, 21);
-}
-
 void
 test_alarm_multiple (void) 
 {
