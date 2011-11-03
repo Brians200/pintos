@@ -514,7 +514,7 @@ init_stack(const char *file_name_,void **esp_)
   char *fn;
   char *fn_toke;
   char *save_ptr;
-  int count = 0;
+  uint32_t count = 0;
   char* args[32];
   
   fn = malloc(strlen(file_name_)+1);
@@ -605,28 +605,23 @@ init_stack(const char *file_name_,void **esp_)
     put_user(*esp,(uint8_t)(argLoc));
   }
   
-  int argc = (uint32_t)count;
-  printf("1                                 this is the arg count:%d\n",argc);
+  uint32_t argc = count;
+  argc = argc << 24;
   *esp -= 1;
   put_user(*esp,(uint8_t)argc);
-  printf("        %d\n",(uint32_t)**esp);
   argc = argc>>8;
-  printf("2                                 this is the arg count:%d\n",argc);
   *esp -= 1;
   put_user(*esp,(uint8_t)(argc));
-  printf("         %d\n",(uint32_t)**esp);
   argc = argc>>8;
-  printf("3                                 this is the arg count:%d\n",argc);
   *esp -= 1;
   put_user(*esp,(uint8_t)(argc));
-  printf("         %d\n",(uint32_t)**esp);
   argc = argc>>8;
-  printf("4                                 this is the arg count:%d\n",argc);
   *esp -= 1;
   put_user(*esp,(uint8_t)(argc));
-  printf("         %d\n",(uint32_t)**esp);
   
-  //*esp -= 1;
+  *esp -= 4;
+  
+  //*esp -= 3;
   //*esp -= 3;
 }
 
