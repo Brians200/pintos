@@ -101,8 +101,7 @@ void sys_exit(int status)
   local_wait_status->status = status;
   sema_up(&(local_wait_status->wait_status_sema));
   //list_remove(&local_wait_status->elem);
-  
-  thread_exit();
+  process_exit();
 }
 
 pid_t sys_exec(const char*cmd_line)
