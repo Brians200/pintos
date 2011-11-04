@@ -20,6 +20,7 @@
 #include "threads/palloc.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
+#include "syscall.h"
 
 struct start_process_data
 {
@@ -130,10 +131,23 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
 //   printf("testing, this is in process_wait");
-  while(true)
+  struct thread *cur = thread_current();
+  struct list cur_children = cur->children;
+  struct thread *child_to_wait_on = find_child_by_pid(cur_children,child_tid);
+  if(child_to_wait_on == NULL)
   {
+    return -1;
   }
-  return -1;
+  struct wait_status *local_wait_status = child_to_wait_on->wait_status;
+  sema_down(&(local_wait_status->wait_status_sema));
+  if(local_wait_status->done)
+  {
+    return local_wait_status->status;
+  }
+  else
+  {
+    return -1;
+  }
 }
 
 /* Free the current process's resources. */

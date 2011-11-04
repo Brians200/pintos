@@ -60,7 +60,7 @@ syscall_init (void)
 
 int sys_open(const char *ufile)
 {
-  printf("testing, this is in sys_open\n");
+//   printf("testing, this is in sys_open\n");
   char *kfile = copy_in_string (ufile);
   struct file_descriptor *fd;
   int handle = -1;
@@ -101,7 +101,8 @@ void sys_exit(int status)
   local_wait_status->status = status;
   sema_up(&(local_wait_status->wait_status_sema));
   //list_remove(&local_wait_status->elem);
-  process_exit();
+  
+  thread_exit();
 }
 
 pid_t sys_exec(const char*cmd_line)
@@ -112,18 +113,25 @@ pid_t sys_exec(const char*cmd_line)
 }
 
 struct thread*
-find_child_by_pid(struct list *children,pid_t pid)
+find_child_by_pid(struct list children,pid_t pid)
 {
-  if(!list_empty(children))
+  if(!list_empty(&children))
   {
-    struct list_elem *e;
+    struct list_elem *e = list_begin(&children);
     struct thread *cur_child;
-    for(e = list_begin(children); e != list_end(children); e = list_next(e))
+    while(e!=list_end(&children))
     {
       cur_child = list_entry(e,struct wait_status,elem)->t;
       if(cur_child->tid == pid)
 	return cur_child;
+      list_next(e);
     }
+//     for(e = list_begin(&children); e != list_end(&children); e = list_next(e))
+//     {
+//       cur_child = list_entry(e,struct wait_status,elem)->t;
+//       if(cur_child->tid == pid)
+// 	return cur_child;
+//     }
   }
   return NULL;
 }
@@ -131,23 +139,7 @@ find_child_by_pid(struct list *children,pid_t pid)
 int sys_wait(pid_t pid)
 {
 //   printf("testing, this is in sys_wait\n");
-  struct thread *cur = thread_current();
-  struct list cur_children = cur->children;
-  struct thread *child_to_wait_on = find_child_by_pid(&cur_children,pid);
-  if(child_to_wait_on == NULL)
-  {
-    return -1;
-  }
-  struct wait_status *local_wait_status = child_to_wait_on->wait_status;
-  sema_down(&(local_wait_status->wait_status_sema));
-  if(local_wait_status->done)
-  {
-    return local_wait_status->status;
-  }
-  else
-  {
-    return -1;
-  }
+  return process_wait(pid);
   //TODO:how do we tell if the child was terminated by the kernel?
 }
 
@@ -164,7 +156,7 @@ bool sys_create(const char *file, unsigned initial_size)
 
 bool sys_remove(const char *file)
 {
-  printf("                              testing, this is in sys_remove\n");
+//   printf("                              testing, this is in sys_remove\n");
   if(file == NULL)
     sys_exit(-1);
   lock_acquire(&fs_lock);
