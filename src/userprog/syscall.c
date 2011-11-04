@@ -51,11 +51,11 @@ static void syscall_handler (struct intr_frame *);
 void
 syscall_init (void) 
 {
-  printf("1 testing, this is in syscall_init\n");
+//   printf("1 testing, this is in syscall_init\n");
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
-  printf("2 testing, this is in syscall_init\n");
+//   printf("2 testing, this is in syscall_init\n");
   lock_init (&fs_lock);
-  printf("3 testing, this is in syscall_init\n");
+//   printf("3 testing, this is in syscall_init\n");
 }
 
 int sys_open(const char *ufile)
@@ -73,7 +73,7 @@ int sys_open(const char *ufile)
     {
       struct thread *cur = thread_current ();
       handle = fd->handle = cur->next_handle++;
-      list_push_front (&cur->fds, &fd->elem);
+      list_push_front (&(cur->fds), &(fd->elem));
     }
     else
       free (fd);
@@ -85,13 +85,13 @@ int sys_open(const char *ufile)
 
 void sys_halt(void)
 {
-  printf("testing, this is in sys_halt\n");
+//   printf("testing, this is in sys_halt\n");
   shutdown_power_off();
 }
 
 void sys_exit(int status)
 {
-  printf("testing, this is in sys_exit\n");
+//   printf("testing, this is in sys_exit\n");
   //TODO: do some stuff with waiting or something
   struct thread *cur = thread_current();
   printf("%s: exit(%d)\n",cur->name,status);
@@ -100,21 +100,14 @@ void sys_exit(int status)
   local_wait_status->done = true;
   local_wait_status->status = status;
   sema_up(&(local_wait_status->wait_status_sema));
-  list_remove(&local_wait_status->elem);
+  //list_remove(&local_wait_status->elem);
   
-  struct list fds = cur->fds;
-  struct list_elem *e;
-  lock_acquire(&fs_lock);
-  for(e=list_begin(&fds); e!=list_end(&fds); e=list_next(e))
-  {
-    file_close(list_entry(e,struct file_descriptor,elem)->file);
-  }
-  lock_release(&fs_lock);
+  thread_exit();
 }
 
 pid_t sys_exec(const char*cmd_line)
 {
-  printf("testing, this is in sys_exec\n");
+//   printf("testing, this is in sys_exec\n");
   //TODO: do it
   return process_execute(cmd_line);
 }
@@ -138,7 +131,7 @@ find_child_by_pid(struct list *children,pid_t pid)
 
 int sys_wait(pid_t pid)
 {
-  printf("testing, this is in sys_wait\n");
+//   printf("testing, this is in sys_wait\n");
   struct thread *cur = thread_current();
   struct list cur_children = cur->children;
   struct thread *child_to_wait_on = find_child_by_pid(&cur_children,pid);
@@ -161,7 +154,7 @@ int sys_wait(pid_t pid)
 
 bool sys_create(const char *file, unsigned initial_size)
 {
-  printf("testing, this is in sys_create\n");
+//   printf("testing, this is in sys_create\n");
   if(file == NULL)
     sys_exit(-1);
   lock_acquire(&fs_lock);
@@ -172,7 +165,7 @@ bool sys_create(const char *file, unsigned initial_size)
 
 bool sys_remove(const char *file)
 {
-  printf("testing, this is in sys_remove\n");
+  printf("                              testing, this is in sys_remove\n");
   if(file == NULL)
     sys_exit(-1);
   lock_acquire(&fs_lock);
@@ -200,7 +193,7 @@ get_file_descriptor(struct list fds,int fd)
 
 int sys_filesize(int fd)
 {
-  printf("testing, this is in sys_filesize\n");
+//   printf("testing, this is in sys_filesize\n");
   int retVal = -1;
   lock_acquire(&fs_lock);
   struct thread *cur = thread_current();
@@ -214,7 +207,7 @@ int sys_filesize(int fd)
 
 int sys_read(int fd,void *buffer,unsigned size)
 {
-  printf("testing, this is in sys_read\n");
+//   printf("testing, this is in sys_read\n");
   int retVal = -1;
   lock_acquire(&fs_lock);
   if(fd != 0)
@@ -241,7 +234,7 @@ int sys_read(int fd,void *buffer,unsigned size)
 
 int sys_write(int fd,const void *buffer,unsigned size)
 {
-  printf("testing, this is in sys_write\n");
+//   printf("testing, this is in sys_write\n");
   int retVal = -1;
   lock_acquire(&fs_lock);
   if(fd != 1)
@@ -263,7 +256,7 @@ int sys_write(int fd,const void *buffer,unsigned size)
 
 void sys_seek(int fd,unsigned position)
 {
-  printf("testing, this is in sys_seek\n");
+//   printf("testing, this is in sys_seek\n");
   lock_acquire(&fs_lock);
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
@@ -275,7 +268,7 @@ void sys_seek(int fd,unsigned position)
 
 unsigned sys_tell(int fd)
 {
-  printf("testing, this is in sys_tell\n");
+//   printf("testing, this is in sys_tell\n");
   unsigned retVal = 0;
   lock_acquire(&fs_lock);
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
@@ -290,12 +283,13 @@ unsigned sys_tell(int fd)
 
 void sys_close(int fd)
 {
-  printf("testing, this is in sys_close\n");
+//   printf("testing, this is in sys_close\n");
   lock_acquire(&fs_lock);
   struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
   if(cur_fd != NULL)
   {
-    file_close(cur_fd->file);
+    if(cur_fd->handle >= 2)
+      file_close(cur_fd->file);
   }
   list_remove(&cur_fd->elem);
   lock_release(&fs_lock);
@@ -342,7 +336,7 @@ copy_in (void *output, void *esp, unsigned size)
 static void
 syscall_handler (struct intr_frame *f)
 {
-  printf("testing, this is in syscall_handler\n");
+//   printf("testing, this is in syscall_handler\n");
   typedef int syscall_function (int, int, int);
 
   /* A system call. */

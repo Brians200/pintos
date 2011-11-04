@@ -41,7 +41,7 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  printf("testing, this is in process_execute\n");
+//   printf("testing, this is in process_execute\n");
   struct start_process_data data;
   char thread_name[15];
   tid_t tid;
@@ -67,7 +67,7 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  printf("testing, this is in start_process\n");
+//   printf("testing, this is in start_process\n");
   struct start_process_data *data = file_name_;
   global_data = data;
   struct intr_frame if_;
@@ -129,7 +129,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  printf("testing, this is in process_wait");
+//   printf("testing, this is in process_wait");
   while(true)
   {
   }
@@ -142,7 +142,7 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
+  
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -254,7 +254,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, void (**eip) (void), void **esp) 
 {
-  printf("testing, this is in load\n");
+//   printf("testing, this is in load\n");
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
@@ -276,6 +276,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+  file_deny_write(file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -363,7 +364,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  if(!success)
+    file_close (file);
   return success;
 }
 
@@ -508,10 +510,7 @@ put_user (uint8_t *udst, uint8_t byte)
 static void
 init_stack(const char *file_name_,void **esp_)
 {
-  printf("testing, this is in init_stack\n");
-  
   uint8_t **esp = (uint8_t**)esp_;
-  printf("                                       %x\n",*esp);
   char *fn;
   char *fn_toke;
   char *save_ptr;
@@ -539,12 +538,10 @@ init_stack(const char *file_name_,void **esp_)
     int for_i;
     int for_j;
     int argLength = 0;
-    printf("%d\n",count);
     for(for_i = count - 1; for_i >= 0; for_i--)
     {
       argLength = strlen(args[for_i]);
       num_to_pad = 4 - (argLength%4);
-      printf("                       arg[%d]:%s,argLength:%d,num_to_pad:%d\n",for_i,args[for_i],argLength,num_to_pad);
       for(for_j = 0; for_j < num_to_pad; for_j++)
       {
 	*esp -= 1;
@@ -555,8 +552,7 @@ init_stack(const char *file_name_,void **esp_)
 	*esp -= 1;
 	put_user(*esp,args[for_i][for_j]);
       }
-      args[count] = *esp;
-      printf("                                       %x\n",(uint32_t)args[count]);
+      args[for_i] = *esp;
     }
     
     uint32_t argLoc = 0;
@@ -573,7 +569,6 @@ init_stack(const char *file_name_,void **esp_)
     uint8_t to_push;
     for(for_i = count - 1; for_i >= 0; for_i--)
     {
-      printf("        %x\n",(uint32_t)args[for_i]);
       argLoc = (uint32_t)args[for_i];
       
       to_push = (uint8_t)(argLoc >> 24);
