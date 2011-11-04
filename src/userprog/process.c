@@ -511,6 +511,7 @@ init_stack(const char *file_name_,void **esp_)
   printf("testing, this is in init_stack\n");
   
   uint8_t **esp = (uint8_t**)esp_;
+  printf("                                       %x\n",*esp);
   char *fn;
   char *fn_toke;
   char *save_ptr;
@@ -526,7 +527,6 @@ init_stack(const char *file_name_,void **esp_)
     strlcpy(args[0],fn_toke,strlen(fn_toke)+1);
     count++;
     
-    printf("%s,%d\n",fn_toke,strlen(fn_toke));
     while(((fn_toke = strtok_r(NULL," ",&save_ptr))!=NULL)&&(count<32))
     {
       args[count] = malloc((strlen(fn_toke)+1)*sizeof(char));
@@ -543,14 +543,12 @@ init_stack(const char *file_name_,void **esp_)
     for(for_i = count - 1; for_i >= 0; for_i--)
     {
       argLength = strlen(args[for_i]);
-      printf("%s\n",args[for_i]);
-      printf("                                    argLength:%d\n",argLength);
       num_to_pad = 4 - (argLength%4);
-      printf("                                     num_to_pad:%d\n",num_to_pad);
+      printf("                       arg[%d]:%s,argLength:%d,num_to_pad:%d\n",for_i,args[for_i],argLength,num_to_pad);
       for(for_j = 0; for_j < num_to_pad; for_j++)
       {
 	*esp -= 1;
-	put_user(*esp,pad);
+	put_user(*esp,(uint8_t)pad);
       }
       for(for_j = argLength-1; for_j >= 0; for_j--)
       {
@@ -558,51 +556,53 @@ init_stack(const char *file_name_,void **esp_)
 	put_user(*esp,args[for_i][for_j]);
       }
       args[count] = *esp;
+      printf("                                       %x\n",(uint32_t)args[count]);
     }
     
-    uint32_t argLoc = (uint32_t)NULL;
+    uint32_t argLoc = 0;
     //pushing on a NULL sentinel
     *esp -= 1;
     put_user(*esp,(uint8_t)argLoc);
-    argLoc = argLoc>>8;
     *esp -= 1;
     put_user(*esp,(uint8_t)(argLoc));
-    argLoc = argLoc>>8;
     *esp -= 1;
     put_user(*esp,(uint8_t)(argLoc));
-    argLoc = argLoc>>8;
     *esp -= 1;
     put_user(*esp,(uint8_t)(argLoc));
+    
+    uint8_t to_push;
     for(for_i = count - 1; for_i >= 0; for_i--)
     {
+      printf("        %x\n",(uint32_t)args[for_i]);
       argLoc = (uint32_t)args[for_i];
+      
+      to_push = (uint8_t)(argLoc >> 24);
       *esp -= 1;
-      put_user(*esp,(uint8_t)argLoc);
-      argLoc = argLoc>>8;
+      put_user(*esp,(uint8_t)to_push);
+      to_push = (uint8_t)(argLoc >> 16);
       *esp -= 1;
-      put_user(*esp,(uint8_t)(argLoc));
-      argLoc = argLoc>>8;
+      put_user(*esp,(uint8_t)to_push);
+      to_push = (uint8_t)(argLoc >> 8);
       *esp -= 1;
-      put_user(*esp,(uint8_t)(argLoc));
-      argLoc = argLoc>>8;
+      put_user(*esp,(uint8_t)to_push);
+      to_push = (uint8_t)(argLoc);
       *esp -= 1;
-      put_user(*esp,(uint8_t)(argLoc));
+      put_user(*esp,(uint8_t)to_push);
     }
     
-    //args = (char**)esp;
-    char **blah = (char**)esp;
-    argLoc = (uint32_t)blah;
+    argLoc = (uint32_t)*esp;
+    to_push = (uint8_t)(argLoc >> 24);
     *esp -= 1;
-    put_user(*esp,(uint8_t)argLoc);
-    argLoc = argLoc>>8;
+    put_user(*esp,(uint8_t)to_push);
+    to_push = (uint8_t)(argLoc >> 16);
     *esp -= 1;
-    put_user(*esp,(uint8_t)(argLoc));
-    argLoc = argLoc>>8;
+    put_user(*esp,(uint8_t)to_push);
+    to_push = (uint8_t)(argLoc >> 8);
     *esp -= 1;
-    put_user(*esp,(uint8_t)(argLoc));
-    argLoc = argLoc>>8;
+    put_user(*esp,(uint8_t)to_push);
+    to_push = (uint8_t)(argLoc);
     *esp -= 1;
-    put_user(*esp,(uint8_t)(argLoc));
+    put_user(*esp,(uint8_t)to_push);
   }
   
   uint32_t argc = count;
