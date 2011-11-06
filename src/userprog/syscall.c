@@ -61,25 +61,28 @@ syscall_init (void)
 int sys_open(const char *ufile)
 {
 //   printf("testing, this is in sys_open\n");
-  char *kfile = copy_in_string (ufile);
-  struct file_descriptor *fd;
   int handle = -1;
-  fd = malloc (sizeof *fd);
-  if (fd != NULL)
+  if(ufile != NULL)
   {
-    lock_acquire (&fs_lock);
-    fd->file = filesys_open (kfile);
-    if (fd->file != NULL)
+    char *kfile = copy_in_string (ufile);
+    struct file_descriptor *fd;
+    fd = malloc (sizeof *fd);
+    if (fd != NULL)
     {
-      struct thread *cur = thread_current ();
-      handle = fd->handle = cur->next_handle++;
-      list_push_front (&(cur->fds), &(fd->elem));
+      lock_acquire (&fs_lock);
+      fd->file = filesys_open (kfile);
+      if (fd->file != NULL)
+      {
+	struct thread *cur = thread_current ();
+	handle = fd->handle = cur->next_handle++;
+	list_push_front (&(cur->fds), &(fd->elem));
+      }
+      else
+	free (fd);
+      lock_release (&fs_lock);
     }
-    else
-      free (fd);
-    lock_release (&fs_lock);
+    palloc_free_page (kfile);
   }
-  palloc_free_page (kfile);
   return handle;
 }
 
@@ -299,16 +302,17 @@ char*
 copy_in_string(const char* ufile_)
 {
   size_t length;
-  uint8_t *kfile = palloc_get_page(0);
+  uint8_t *kfile = palloc_get_page(PAL_ASSERT | PAL_ZERO);
   uint8_t *ufile = ufile_;
   if(kfile == NULL)
     thread_exit();
   for(length = 0;length < PGSIZE;length++)
   {
-    if(!(ufile >= 0x08084000 && is_user_vaddr(ufile)) || !get_user(kfile + length,ufile++))
+    if(!(/*ufile >= 0x08084000 && */is_user_vaddr(ufile) && get_user(kfile + length,ufile++)))
     {
       palloc_free_page(kfile);
-      sys_exit(-1);
+      thread_exit();
+      //sys_exit(-1);
     }
     if(kfile[length] == '\0')
       return (char*)kfile;
@@ -326,9 +330,10 @@ copy_in (void *output, void *esp, unsigned size)
   for(;size>0;size--,src++,dest++)
   {
     //what else do I have to do?
-    if(!(src >= 0x08084000 && is_user_vaddr(src)) || !get_user(dest,src))
+    if(!(/*src >= 0x08084000 && */is_user_vaddr(src) && get_user(dest,src)))
     {
-      sys_exit(-1);
+      thread_exit();
+      //sys_exit(-1);
     }
   }
 }
