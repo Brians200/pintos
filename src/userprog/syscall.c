@@ -305,10 +305,10 @@ copy_in_string(const char* ufile_)
     thread_exit();
   for(length = 0;length < PGSIZE;length++)
   {
-    if(!is_user_vaddr(ufile) || !get_user(kfile + length,ufile++))
+    if(!(ufile >= 0x08084000 && is_user_vaddr(ufile)) || !get_user(kfile + length,ufile++))
     {
       palloc_free_page(kfile);
-      thread_exit();
+      sys_exit(-1);
     }
     if(kfile[length] == '\0')
       return (char*)kfile;
@@ -326,9 +326,9 @@ copy_in (void *output, void *esp, unsigned size)
   for(;size>0;size--,src++,dest++)
   {
     //what else do I have to do?
-    if(!is_user_vaddr(src) || !get_user(dest,src))
+    if(!(src >= 0x08084000 && is_user_vaddr(src)) || !get_user(dest,src))
     {
-      thread_exit();
+      sys_exit(-1);
     }
   }
 }
