@@ -200,23 +200,31 @@ int sys_read(int fd,void *buffer,unsigned size)
 {
 //   printf("testing, this is in sys_read\n");
   int retVal = -1;
+  int whileSize = size;
   lock_acquire(&fs_lock);
-  if(fd != 0)
+  if(fd == 0)
+  {
+    //TODO: if it is 0 we need to read from input?
+    input_init();
+    buffer = malloc(size);
+    while(whileSize > 0)
+    {
+      ((uint8_t*)buffer)[size - whileSize] = input_getc();
+      if(((uint8_t*)buffer)[size - whileSize] == '\0')
+      {
+	whileSize--;
+	break;
+      }
+      whileSize--;
+    }
+    retVal = size - whileSize;
+  }
+  else if(fd != 1)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
     if(cur_fd != NULL)
     {
       retVal = file_read(cur_fd->file,buffer,size);
-    }
-  }
-  else
-  {
-    //TODO: if it is 0 we need to read from input?
-    input_init();
-    while(size > 0)
-    {
-      
-      size--;
     }
   }
   lock_release(&fs_lock);
@@ -236,13 +244,14 @@ int sys_write(int fd,const void *buffer,unsigned size)
       retVal = file_write(cur_fd->file,buffer,size);
     }
   }
-  else
+  else if(fd == 1)
   {
     //TODO: if it is 1 we need to output to console, might have to break the output up?
     putbuf(buffer,size);
+    retVal = size;
   }
   lock_release(&fs_lock);
-  return -1;
+  return retVal;
 }
 
 void sys_seek(int fd,unsigned position)

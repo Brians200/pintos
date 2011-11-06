@@ -49,7 +49,16 @@ process_execute (const char *file_name)
   
   data.file_name = file_name;
   sema_init(&data.load_done,0);
-  strlcpy(thread_name,file_name,sizeof thread_name);
+  char* save_ptr;
+  char* file_name_ = malloc(strlen(file_name)+1);
+  strlcpy(file_name_,file_name,strlen(file_name)+1);
+  char* fn_toke = strtok_r(file_name_," ",&save_ptr);
+  int thread_name_length = 15;
+  if((strlen(fn_toke)+1) < 15)
+    thread_name_length = strlen(fn_toke)+1;
+  strlcpy(thread_name,fn_toke,thread_name_length);
+  free(file_name_);
+  
   tid = thread_create(thread_name,PRI_DEFAULT,start_process,&data);
   
   if(tid != TID_ERROR)
@@ -284,7 +293,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   /* Open executable file. */
   //TODO: do we need to do something else here, because file_name is more than just the file name
-  file = filesys_open (file_name);
+  char* save_ptr;
+  char* file_name_ = malloc(strlen(file_name)+1);
+  strlcpy(file_name_,file_name,strlen(file_name)+1);
+  char* file_to_open = strtok_r(file_name_," ",&save_ptr);
+  file = filesys_open (file_to_open);
+  free(file_name_);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -539,11 +553,10 @@ init_stack(const char *file_name_,void **esp_)
     args[0] = malloc((strlen(fn_toke)+1)*sizeof(char));
     strlcpy(args[0],fn_toke,strlen(fn_toke)+1);
     count++;
-    
     while(((fn_toke = strtok_r(NULL," ",&save_ptr))!=NULL)&&(count<32))
     {
-      args[count] = malloc((strlen(fn_toke)+1)*sizeof(char));
-      strlcpy(args[count],fn_toke,strlen(fn_toke));
+      args[count] = malloc((strlen(fn_toke)+1));
+      strlcpy(args[count],fn_toke,strlen(fn_toke)+1);
       count++;
     }
     
@@ -556,6 +569,7 @@ init_stack(const char *file_name_,void **esp_)
     {
       argLength = strlen(args[for_i]);
       num_to_pad = 4 - (argLength%4);
+      //printf("               args[%d]:%s,argLength:%d,num_to_pad:%d\n",for_i,args[for_i],argLength,num_to_pad);
       for(for_j = 0; for_j < num_to_pad; for_j++)
       {
 	*esp -= 1;
