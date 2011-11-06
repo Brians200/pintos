@@ -287,15 +287,18 @@ unsigned sys_tell(int fd)
 void sys_close(int fd)
 {
 //   printf("testing, this is in sys_close\n");
-  lock_acquire(&fs_lock);
-  struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
-  if(cur_fd != NULL)
+  if(fd >= 2)
   {
-    if(cur_fd->handle >= 2)
-      file_close(cur_fd->file);
+    lock_acquire(&fs_lock);
+    struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
+    if(cur_fd != NULL)
+    {
+      if(cur_fd->handle >= 2)
+	file_close(cur_fd->file);
+    }
+    list_remove(&cur_fd->elem);
+    lock_release(&fs_lock);
   }
-  list_remove(&cur_fd->elem);
-  lock_release(&fs_lock);
 }
 
 char*
@@ -330,11 +333,19 @@ copy_in (void *output, void *esp, unsigned size)
   for(;size>0;size--,src++,dest++)
   {
     //what else do I have to do?
-    if(!(/*src >= 0x08084000 && */is_user_vaddr(src) && get_user(dest,src)))
+    if(!is_user_vaddr(src))
+    {
+      sys_exit(-1);
+    }
+    if(!get_user(dest,src))
     {
       thread_exit();
-      //sys_exit(-1);
     }
+//     if(!(/*src >= 0x08084000 && */is_user_vaddr(src) && get_user(dest,src)))
+//     {
+//       thread_exit();
+//       //sys_exit(-1);
+//     }
   }
 }
 
