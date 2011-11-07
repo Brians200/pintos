@@ -522,3 +522,12 @@ list_min (struct list *list, list_less_func *less, void *aux)
     }
   return min;
 }
+
+bool
+is_elem_tail(struct list_elem *elem)
+{
+  if(is_tail(elem))
+    return true;
+  else
+    return false;
+}

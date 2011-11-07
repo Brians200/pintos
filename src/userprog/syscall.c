@@ -122,18 +122,12 @@ find_child_by_pid(struct list children,pid_t pid)
   {
     struct list_elem *e = list_head(&children);
     struct thread *cur_child;
-    while((e = list_next (e)) != list_end (&children))
+    while(!is_elem_tail(e=list_next(e)))
     {
       cur_child = list_entry(e,struct wait_status,elem)->t;
       if(cur_child->tid == pid)
 	return cur_child;
     }
-//     for(e = list_begin(&children); e != list_end(&children); e = list_next(e))
-//     {
-//       cur_child = list_entry(e,struct wait_status,elem)->t;
-//       if(cur_child->tid == pid)
-// 	return cur_child;
-//     }
   }
   return NULL;
 }
@@ -148,7 +142,7 @@ int sys_wait(pid_t pid)
 bool sys_create(const char *file, unsigned initial_size)
 {
 //   printf("testing, this is in sys_create\n");
-  if(file == NULL)
+  if(file == NULL || is_kernel_vaddr(file))
     sys_exit(-1);
   lock_acquire(&fs_lock);
   bool retVal = filesys_create(file,initial_size);
@@ -159,7 +153,7 @@ bool sys_create(const char *file, unsigned initial_size)
 bool sys_remove(const char *file)
 {
 //   printf("                              testing, this is in sys_remove\n");
-  if(file == NULL)
+  if(file == NULL || is_kernel_vaddr(file))
     sys_exit(-1);
   lock_acquire(&fs_lock);
   bool retVal = filesys_remove(file);
@@ -174,9 +168,9 @@ get_file_descriptor(struct list fds,int fd)
     sys_exit(-1);
   if(!list_empty(&fds))
   {
-    struct list_elem *e;
+    struct list_elem *e = list_head(&fds);
     struct file_descriptor *retVal;
-    for(e = list_begin(&fds); e != list_end(&fds); e = list_next(e))
+    while(!is_elem_tail(e=list_next(e)))
     {
       retVal = list_entry(e,struct file_descriptor, elem);
       if(retVal->handle == fd)
@@ -203,6 +197,8 @@ int sys_filesize(int fd)
 int sys_read(int fd,void *buffer,unsigned size)
 {
 //   printf("testing, this is in sys_read\n");
+  if(is_kernel_vaddr(buffer))
+    sys_exit(-1);
   int retVal = -1;
   int whileSize = size;
   lock_acquire(&fs_lock);
@@ -238,6 +234,8 @@ int sys_read(int fd,void *buffer,unsigned size)
 int sys_write(int fd,const void *buffer,unsigned size)
 {
 //   printf("testing, this is in sys_write\n");
+  if(is_kernel_vaddr(buffer))
+    sys_exit(-1);
   int retVal = -1;
   lock_acquire(&fs_lock);
   if(fd >= 2)
@@ -294,10 +292,9 @@ void sys_close(int fd)
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
     if(cur_fd != NULL)
     {
-      if(cur_fd->handle >= 2)
-	file_close(cur_fd->file);
+      file_close(cur_fd->file);
+      list_remove(&cur_fd->elem);
     }
-    list_remove(&cur_fd->elem);
     lock_release(&fs_lock);
   }
 }
@@ -342,11 +339,6 @@ copy_in (void *output, void *esp, unsigned size)
     {
       thread_exit();
     }
-//     if(!(/*src >= 0x08084000 && */is_user_vaddr(src) && get_user(dest,src)))
-//     {
-//       thread_exit();
-//       //sys_exit(-1);
-//     }
   }
 }
 
