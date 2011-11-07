@@ -65,7 +65,8 @@ process_execute (const char *file_name)
   {
     sema_down(&data.load_done);
     if(data.success)
-      list_push_back(&thread_current()->children,&data.wait_status->elem);
+      list_insert(list_end(&thread_current()->children),&data.wait_status->elem);
+      //list_push_back(&thread_current()->children,&data.wait_status->elem);
     else
       tid = TID_ERROR;
   }
