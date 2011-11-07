@@ -222,7 +222,7 @@ int sys_read(int fd,void *buffer,unsigned size)
     }
     retVal = size - whileSize;
   }
-  else if(fd != 1)
+  else if(fd >= 2)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
     if(cur_fd != NULL)
@@ -239,7 +239,7 @@ int sys_write(int fd,const void *buffer,unsigned size)
 //   printf("testing, this is in sys_write\n");
   int retVal = -1;
   lock_acquire(&fs_lock);
-  if(fd != 1)
+  if(fd >= 2)
   {
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
     if(cur_fd != NULL)
