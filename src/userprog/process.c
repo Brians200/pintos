@@ -116,7 +116,7 @@ start_process (void *file_name_)
     /* If load failed, quit. */
   //palloc_free_page (file_name);//does this need to stay here, it's not here in Project2SessionB
   if (!success) 
-    thread_exit ();
+    sys_exit(-1);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in

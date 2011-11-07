@@ -170,6 +170,8 @@ bool sys_remove(const char *file)
 struct file_descriptor*
 get_file_descriptor(struct list fds,int fd)
 {
+  if(fd > 127)
+    sys_exit(-1);
   if(!list_empty(&fds))
   {
     struct list_elem *e;
