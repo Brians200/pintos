@@ -123,6 +123,10 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+  if(&if_ == NULL)
+  {
+    sys_exit(-1);
+  }
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
@@ -292,11 +296,15 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
-  //TODO: do we need to do something else here, because file_name is more than just the file name
   char* save_ptr;
   char* file_name_ = malloc(strlen(file_name)+1);
   strlcpy(file_name_,file_name,strlen(file_name)+1);
   char* file_to_open = strtok_r(file_name_," ",&save_ptr);
+  if(file_to_open == NULL)
+  {
+    free(file_name_);
+    sys_exit(-1);
+  }
   file = filesys_open (file_to_open);
   free(file_name_);
   if (file == NULL) 

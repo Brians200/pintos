@@ -5,6 +5,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/palloc.h"
+#include "threads/vaddr.h"
 #include "userprog/pagedir.h"
 
 /* Number of page faults processed. */
@@ -150,11 +151,9 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  if(user)
-  {
-    if(not_present)
-      pagedir_set_page(thread_current()->pagedir,fault_addr,palloc_get_page(PAL_ASSERT | PAL_ZERO),true);
-  }
+  if(not_present || (is_kernel_vaddr(fault_addr) && user))
+    sys_exit(-1);
+  
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
