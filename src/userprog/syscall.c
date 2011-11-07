@@ -120,14 +120,13 @@ find_child_by_pid(struct list children,pid_t pid)
 {
   if(!list_empty(&children))
   {
-    struct list_elem *e = list_begin(&children);
+    struct list_elem *e = list_head(&children);
     struct thread *cur_child;
-    while(e!=list_end(&children))
+    while((e = list_next (e)) != list_end (&children))
     {
       cur_child = list_entry(e,struct wait_status,elem)->t;
       if(cur_child->tid == pid)
 	return cur_child;
-      list_next(e);
     }
 //     for(e = list_begin(&children); e != list_end(&children); e = list_next(e))
 //     {
