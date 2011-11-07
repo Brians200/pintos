@@ -8,8 +8,8 @@
 
 >> Fill in the names of your group members.
 
-Brian Sweeney
 Brandon Davis
+Brian Sweeney
 
 ---- PRELIMINARIES ----
 
@@ -29,19 +29,44 @@ Brandon Davis
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+
+
+struct start_process_data
+{
+  char* file_name;
+  struct semaphore load_done;
+  bool success;
+  struct wait_status *wait_status;
+};
+Contains the file name which is the file name and the command line arguments.
+It has a semaphore that the parent process semadowns on and child will semaup, bool success to see if it loaded successfully, and a wait status
+
+
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe how you implemented argument parsing.  How do
 >> you arrange for the elements of argv[] to be in the right order?
 >> How do you avoid overflowing the stack page?
 
+We put the arguments onto the stack 1 byte at a time and decremented the stack pointer (esp) every time.
+We used strtok_r to split the string and then put them on from the back to the beginning.
+We limited it to 32 arguments.
+
 ---- RATIONALE ----
 
 >> A3: Why does Pintos implement strtok_r() but not strtok()?
 
+strtok is not thread safe.
+
+Because strtok_r has an extra parameter that points where you currently are in the string, it is thread safe
+
 >> A4: In Pintos, the kernel separates commands into a executable name
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
+
+The shell can provide an extra layer of security by not allowing malicious code to reach the kernel. 
+The kernel can also run other code while the shell is processing the arguments. (multitasking)
+
 
 			     SYSTEM CALLS
 			     ============
@@ -52,14 +77,71 @@ Brandon Davis
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    char name[16];                      /* Name (for debugging purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    struct list_elem allelem;           /* List element for all threads list. */
+
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+    
+    //Project 2
+    int next_handle;
+    //char *fds;
+    struct list fds;
+    struct list children;
+    struct wait_status *wait_status;
+    
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+  };
+
+We added the next handle, a list of file descriptors, a list of children, and the current threads wait status.
+
+struct wait_status
+{
+  struct thread *t;
+  struct list_elem elem;
+  bool done;
+  struct semaphore wait_status_sema;
+  int status;
+};
+
+Contains the thread that it belongs to, can be added to a list, boolean to say whether it is finished or not, a semaphore used for waiting, and a status that holds child's exit status.
+
+struct file_descriptor
+{
+  int handle;
+  struct file *file;
+  struct list_elem elem;
+};
+Contains the file's handle, the file itself, and a list elem so it can be added to a list.
+
+
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
+
+File descriptors contain a pointer to the file and a handle.
+They are unique within a single process.
+Two files could have the same file descriptors that point to the same files and even have the same handles.
 
 ---- ALGORITHMS ----
 
 >> B3: Describe your code for reading and writing user data from the
 >> kernel.
+
+We use get_user and put_user.  These were given to us.
 
 >> B4: Suppose a system call causes a full page (4,096 bytes) of data
 >> to be copied from user space into the kernel.  What is the least
@@ -68,8 +150,15 @@ Brandon Davis
 >> for a system call that only copies 2 bytes of data?  Is there room
 >> for improvement in these numbers, and how much?
 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 >> B5: Briefly describe your implementation of the "wait" system call
 >> and how it interacts with process termination.
+
+We have a wait status that a parent and child share. That wait status includes a semaphore the parent can semadown on. The child can change the wait status and sema up on the semaphore.
 
 >> B6: Any access to user program memory at a user-specified address
 >> can fail due to a bad pointer value.  Such accesses must cause the
@@ -85,12 +174,20 @@ Brandon Davis
 >> paragraphs, describe the strategy or strategies you adopted for
 >> managing these issues.  Give an example.
 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 ---- SYNCHRONIZATION ----
 
 >> B7: The "exec" system call returns -1 if loading the new executable
 >> fails, so it cannot return before the new executable has completed
 >> loading.  How does your code ensure this?  How is the load
 >> success/failure status passed back to the thread that calls "exec"?
+
+There is a semaphore that waits for the loading to be done.  Start process data has a boolean for loading success.  When the child is loading, it sets that success to false or true depending on whether it succeeds.
+
 
 >> B8: Consider parent process P with child process C.  How do you
 >> ensure proper synchronization and avoid race conditions when P
@@ -99,16 +196,29 @@ Brandon Davis
 >> terminates without waiting, before C exits?  After C exits?  Are
 >> there any special cases?
 
+There is a semaphore that it waits on. After C exits, C sema ups on the same semaphore.  If P is able to continue after the sema down, that means C is done and can free the resources. If P exits before C finishes, C becomes an orphan.
+
+
 ---- RATIONALE ----
 
 >> B9: Why did you choose to implement access to user memory from the
 >> kernel in the way that you did?
 
+put_user and get_user were given to us.
+
 >> B10: What advantages or disadvantages can you see to your design
 >> for file descriptors?
 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 >> B11: The default tid_t to pid_t mapping is the identity mapping.
 >> If you changed it, what advantages are there to your approach?
+
+We did not change this.
+
 
 			   SURVEY QUESTIONS
 			   ================
@@ -131,5 +241,6 @@ the quarter.
 
 >> Do you have any suggestions for the TAs to more effectively assist
 >> students, either for future quarters or the remaining projects?
+
 
 >> Any other comments?
