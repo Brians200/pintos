@@ -135,16 +135,16 @@ start_process (void *file_name_)
 bool
 has_been_waited_on(tid_t child_tid, struct list children_waited_on)
 {
-  if(!list_empty(&children_waited_on))
+  struct list_elem *e = list_head(&children_waited_on);
+  if(!is_elem_tail(e->next))
   {
-    struct list_elem *e = list_head(&children_waited_on);
     struct child_has_been_waited_on *child;
     while(!(is_elem_tail(e)))
     {
       child = list_entry(e,struct child_has_been_waited_on,elem);
       if(child->child_tid == child_tid)
       {
-	printf("child->child_tid:%d,child_tid:%d\n",child->child_tid,child_tid);
+	//printf("child->child_tid:%d,child_tid:%d\n",child->child_tid,child_tid);
 	return true;
       }
     }
@@ -166,36 +166,24 @@ process_wait (tid_t child_tid)
 {
 //   printf("testing, this is in process_wait");
   struct thread *cur = thread_current();
-  //printf("1                  testing,this is in process_wait\n");
   if(!(has_been_waited_on(child_tid,cur->children_waited_on)))
   {
-    //printf("2                  testing,this is in process_wait\n");
     struct child_has_been_waited_on child;
-    //printf("3                  testing,this is in process_wait\n");
     child.child_tid = child_tid;
-    //printf("4                  testing,this is in process_wait\n");
-    list_insert(list_begin(&(cur->children_waited_on)),&(child.elem));
-    //printf("5                  testing,this is in process_wait\n");
+    list_insert(list_end(&(cur->children_waited_on)),&(child.elem));
     struct list cur_children = cur->children;
-    //printf("6                  testing,this is in process_wait\n");
     struct thread *child_to_wait_on = find_child_by_pid(cur_children,child_tid);
-    //printf("7                  testing,this is in process_wait\n");
     if(child_to_wait_on == NULL)
     {
-      //printf("8                  testing,this is in process_wait\n");
       return -1;
     }
     struct wait_status *local_wait_status = child_to_wait_on->wait_status;
-    //printf("9                  testing,this is in process_wait\n");
     sema_down(&(local_wait_status->wait_status_sema));
-    //printf("10                  testing,this is in process_wait\n");
     if(local_wait_status->done)
     {
-      //printf("11                  testing,this is in process_wait\n");
       return local_wait_status->status;
     }
   }
-  //printf("12                  testing,this is in process_wait\n");
   return -1;
 }
 
@@ -346,6 +334,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
+      sema_up(&(global_data->load_done));
+      sys_exit(-1);
       goto done; 
     }
   file_deny_write(file);
