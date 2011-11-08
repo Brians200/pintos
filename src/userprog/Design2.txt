@@ -150,10 +150,12 @@ We use get_user and put_user.  These were given to us.
 >> for a system call that only copies 2 bytes of data?  Is there room
 >> for improvement in these numbers, and how much?
 
+1 is the minimum because we could get the page first try and it could all be on 1 page.
+2 if the data is split between two pages.
+same for 2 bytes, because most likely the 2 bytes are on the same page, but one byte could be at the beginning of a page and the other byte at the end of another page.
 
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+There is if we brought in surrounding pages also.
+
 
 >> B5: Briefly describe your implementation of the "wait" system call
 >> and how it interacts with process termination.
@@ -174,9 +176,9 @@ We have a wait status that a parent and child share. That wait status includes a
 >> paragraphs, describe the strategy or strategies you adopted for
 >> managing these issues.  Give an example.
 
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Use exception handling. Easier than constantly checking, just go and if there's an exception handle it and try to recover from it.
+
+there's a page_fault and if it's not_present or if a user is trying to access kernel memory then we just call sys_exit and pass -1.
 
 
 ---- SYNCHRONIZATION ----
@@ -209,10 +211,8 @@ put_user and get_user were given to us.
 >> B10: What advantages or disadvantages can you see to your design
 >> for file descriptors?
 
+They are simple, just hold a handle, file and a list_elem so that they can be added to a list for each thread.
 
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 >> B11: The default tid_t to pid_t mapping is the identity mapping.
 >> If you changed it, what advantages are there to your approach?
