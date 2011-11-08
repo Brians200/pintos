@@ -101,6 +101,7 @@ struct thread
     struct list children;
     struct list children_waited_on;
     struct wait_status *wait_status;
+    struct file *executable;
     
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -123,6 +124,7 @@ struct wait_status
   struct list_elem elem;
   bool done;
   struct semaphore wait_status_sema;
+  struct semaphore wait_status_sema2;
   int status;
 };
 

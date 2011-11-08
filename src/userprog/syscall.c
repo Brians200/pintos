@@ -102,7 +102,18 @@ void sys_exit(int status)
   struct wait_status *local_wait_status = cur->wait_status;
   local_wait_status->done = true;
   local_wait_status->status = status;
+  struct file *executable = cur->executable;
+  file_close(executable);
   sema_up(&(local_wait_status->wait_status_sema));
+  
+  struct list_elem *e = list_head(&cur->children);
+  while(!is_elem_tail(e=list_next(e)))
+  {
+    sema_up(&((list_entry(e,struct wait_status,elem))->wait_status_sema2));
+  }
+  
+  sema_down(&(local_wait_status->wait_status_sema2));
+    
   //list_remove(&local_wait_status->elem);
   
   thread_exit();
@@ -244,7 +255,8 @@ int sys_write(int fd,const void *buffer,unsigned size)
     struct file_descriptor *cur_fd = get_file_descriptor(thread_current()->fds,fd);
     if(cur_fd != NULL)
     {
-      retVal = file_write(cur_fd->file,buffer,size);
+      if(!(file_denied_write(cur_fd->file)))
+	retVal = file_write(cur_fd->file,buffer,size);
     }
   }
   else if(fd == 1)

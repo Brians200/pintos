@@ -65,7 +65,7 @@ process_execute (const char *file_name)
   {
     sema_down(&data.load_done);
     if(data.success)
-      list_insert(list_end(&thread_current()->children),&data.wait_status->elem);
+      list_insert(list_begin(&thread_current()->children),&data.wait_status->elem);
       //list_push_back(&thread_current()->children,&data.wait_status->elem);
     else
       tid = TID_ERROR;
@@ -105,6 +105,7 @@ start_process (void *file_name_)
     data->wait_status->t = thread_current();
     data->wait_status->done = false;
     sema_init(&(data->wait_status->wait_status_sema),0);
+    sema_init(&(data->wait_status->wait_status_sema2),0);
     data->wait_status->status = -1;
 	//TODO
   }
@@ -144,7 +145,7 @@ has_been_waited_on(tid_t child_tid, struct list children_waited_on)
       child = list_entry(e,struct child_has_been_waited_on,elem);
       if(child->child_tid == child_tid)
       {
-	//printf("child->child_tid:%d,child_tid:%d\n",child->child_tid,child_tid);
+// 	printf("\n\nchild->child_tid:%d,child_tid:%d\n\n\n",child->child_tid,child_tid);
 	return true;
       }
     }
@@ -166,6 +167,7 @@ process_wait (tid_t child_tid)
 {
 //   printf("testing, this is in process_wait");
   struct thread *cur = thread_current();
+  int retVal = -1;
   if(!(has_been_waited_on(child_tid,cur->children_waited_on)))
   {
     struct child_has_been_waited_on child;
@@ -175,16 +177,18 @@ process_wait (tid_t child_tid)
     struct thread *child_to_wait_on = find_child_by_pid(cur_children,child_tid);
     if(child_to_wait_on == NULL)
     {
-      return -1;
+      return retVal;
     }
     struct wait_status *local_wait_status = child_to_wait_on->wait_status;
     sema_down(&(local_wait_status->wait_status_sema));
     if(local_wait_status->done)
     {
-      return local_wait_status->status;
+      retVal = local_wait_status->status;
+      sema_up(&(local_wait_status->wait_status_sema2));
     }
   }
-  return -1;
+//   printf("\ntesting, this is in process_wait\n");
+  return retVal;
 }
 
 /* Free the current process's resources. */
@@ -339,6 +343,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       goto done; 
     }
   file_deny_write(file);
+  t->executable = file;
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
