@@ -112,7 +112,8 @@ pid_t sys_exec(const char*cmd_line)
 {
 //   printf("testing, this is in sys_exec\n");
   //TODO: do it
-  return process_execute(cmd_line);
+  char* proc_exec_string = copy_in_string(cmd_line);
+  return process_execute(proc_exec_string);
 }
 
 struct thread*
@@ -328,6 +329,8 @@ copy_in (void *output, void *esp, unsigned size)
 {
   uint8_t *dest = output;
   uint8_t *src = esp;
+  if(size > 0)
+      output = malloc(size);
   for(;size>0;size--,src++,dest++)
   {
     //what else do I have to do?

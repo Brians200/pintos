@@ -132,6 +132,26 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
+bool
+has_been_waited_on(tid_t child_tid, struct list children_waited_on)
+{
+  if(!list_empty(&children_waited_on))
+  {
+    struct list_elem *e = list_head(&children_waited_on);
+    struct child_has_been_waited_on *child;
+    while(!(is_elem_tail(e)))
+    {
+      child = list_entry(e,struct child_has_been_waited_on,elem);
+      if(child->child_tid == child_tid)
+      {
+	printf("child->child_tid:%d,child_tid:%d\n",child->child_tid,child_tid);
+	return true;
+      }
+    }
+  }
+  return false;
+}
+
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
    exception), returns -1.  If TID is invalid or if it was not a
@@ -146,22 +166,37 @@ process_wait (tid_t child_tid)
 {
 //   printf("testing, this is in process_wait");
   struct thread *cur = thread_current();
-  struct list cur_children = cur->children;
-  struct thread *child_to_wait_on = find_child_by_pid(cur_children,child_tid);
-  if(child_to_wait_on == NULL)
+  //printf("1                  testing,this is in process_wait\n");
+  if(!(has_been_waited_on(child_tid,cur->children_waited_on)))
   {
-    return -1;
+    //printf("2                  testing,this is in process_wait\n");
+    struct child_has_been_waited_on child;
+    //printf("3                  testing,this is in process_wait\n");
+    child.child_tid = child_tid;
+    //printf("4                  testing,this is in process_wait\n");
+    list_insert(list_begin(&(cur->children_waited_on)),&(child.elem));
+    //printf("5                  testing,this is in process_wait\n");
+    struct list cur_children = cur->children;
+    //printf("6                  testing,this is in process_wait\n");
+    struct thread *child_to_wait_on = find_child_by_pid(cur_children,child_tid);
+    //printf("7                  testing,this is in process_wait\n");
+    if(child_to_wait_on == NULL)
+    {
+      //printf("8                  testing,this is in process_wait\n");
+      return -1;
+    }
+    struct wait_status *local_wait_status = child_to_wait_on->wait_status;
+    //printf("9                  testing,this is in process_wait\n");
+    sema_down(&(local_wait_status->wait_status_sema));
+    //printf("10                  testing,this is in process_wait\n");
+    if(local_wait_status->done)
+    {
+      //printf("11                  testing,this is in process_wait\n");
+      return local_wait_status->status;
+    }
   }
-  struct wait_status *local_wait_status = child_to_wait_on->wait_status;
-  sema_down(&(local_wait_status->wait_status_sema));
-  if(local_wait_status->done)
-  {
-    return local_wait_status->status;
-  }
-  else
-  {
-    return -1;
-  }
+  //printf("12                  testing,this is in process_wait\n");
+  return -1;
 }
 
 /* Free the current process's resources. */

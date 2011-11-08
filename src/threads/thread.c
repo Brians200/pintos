@@ -473,6 +473,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->next_handle = 2;
   list_init(&t->children);
   list_init(&t->fds);
+  list_init(&t->children_waited_on);
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }

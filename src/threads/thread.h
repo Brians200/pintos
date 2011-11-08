@@ -99,6 +99,7 @@ struct thread
     //char *fds;
     struct list fds;
     struct list children;
+    struct list children_waited_on;
     struct wait_status *wait_status;
     
 #ifdef USERPROG
@@ -109,6 +110,12 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
+struct child_has_been_waited_on
+{
+  tid_t child_tid;
+  struct list_elem elem;
+};
 
 struct wait_status
 {
